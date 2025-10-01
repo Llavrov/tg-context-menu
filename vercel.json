@@ -1,0 +1,22 @@
+{
+    "functions": {
+        "src/app/api/**/*.ts": {
+            "runtime": "nodejs18.x"
+        }
+    },
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "X-Frame-Options",
+                    "value": "SAMEORIGIN"
+                },
+                {
+                    "key": "Content-Security-Policy",
+                    "value": "frame-ancestors 'self' https://web.telegram.org https://telegram.org"
+                }
+            ]
+        }
+    ]
+}
