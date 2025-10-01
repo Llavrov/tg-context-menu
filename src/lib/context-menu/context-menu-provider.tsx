@@ -19,7 +19,10 @@ import {
     calculateMenuDimensions,
     checkElementAndMenuFit,
     calculateElementFinalPosition,
-    calculateMenuPositionRelativeToElement
+    calculateMenuPositionRelativeToElement,
+    triggerHaptic,
+    HapticType,
+    isHapticSupported
 } from './utils';
 import { OverlayContainer } from './components/overlay-container';
 
@@ -147,6 +150,9 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
 
         console.log('OPEN START:', { element, rect });
 
+        // Хаптик при открытии меню
+        triggerHaptic(HapticType.MEDIUM);
+
         // Блокируем скролл
         const unlockScroll = lockScroll();
         unlockScrollRef.current = unlockScroll;
@@ -223,6 +229,15 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             },
             placeholderRef: placeholderRef.current
         });
+
+        // Хаптик при закрытии меню (разные типы для разных причин)
+        if (reason === 'action') {
+            triggerHaptic(HapticType.SUCCESS);
+        } else if (reason === 'escape') {
+            triggerHaptic(HapticType.LIGHT);
+        } else {
+            triggerHaptic(HapticType.SELECTION);
+        }
 
         // Используем placeholder из ref (более надёжно)
         const placeholder = placeholderRef.current || state.placeholderElement;

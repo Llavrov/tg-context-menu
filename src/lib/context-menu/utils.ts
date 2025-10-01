@@ -1,12 +1,61 @@
 import { ViewportRect, SafeArea, MenuPosition, LongPressOpts } from './types';
 
 /**
+ * Типы хаптической обратной связи
+ */
+export enum HapticType {
+    LIGHT = 'light',
+    MEDIUM = 'medium', 
+    HEAVY = 'heavy',
+    SUCCESS = 'success',
+    WARNING = 'warning',
+    ERROR = 'error',
+    SELECTION = 'selection'
+}
+
+/**
+ * Паттерны вибрации для разных типов хаптика
+ */
+const HAPTIC_PATTERNS = {
+    [HapticType.LIGHT]: 10,
+    [HapticType.MEDIUM]: 15,
+    [HapticType.HEAVY]: 25,
+    [HapticType.SUCCESS]: [15, 10, 15],
+    [HapticType.WARNING]: [20, 10, 20],
+    [HapticType.ERROR]: [30, 20, 30],
+    [HapticType.SELECTION]: 5
+};
+
+/**
  * Хаптическая обратная связь
  */
-export function triggerHaptic(pattern: number | number[] = 15): void {
-    if (navigator.vibrate) {
-        navigator.vibrate(pattern);
+export function triggerHaptic(type: HapticType | number | number[] = HapticType.MEDIUM): void {
+    if (typeof window === 'undefined' || !navigator.vibrate) {
+        return;
     }
+
+    let pattern: number | number[];
+    
+    if (typeof type === 'number' || Array.isArray(type)) {
+        // Прямая передача паттерна
+        pattern = type;
+    } else {
+        // Использование предустановленного типа
+        pattern = HAPTIC_PATTERNS[type] || HAPTIC_PATTERNS[HapticType.MEDIUM];
+    }
+
+    try {
+        navigator.vibrate(pattern);
+    } catch (error) {
+        console.warn('Haptic feedback failed:', error);
+    }
+}
+
+/**
+ * Проверка поддержки хаптика
+ */
+export function isHapticSupported(): boolean {
+    return typeof window !== 'undefined' && 'vibrate' in navigator;
 }
 
 /**

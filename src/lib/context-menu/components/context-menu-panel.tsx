@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import classNames from 'classnames';
 import { ContextMenuAction } from '../types';
-import { trapFocus } from '../utils';
+import { trapFocus, triggerHaptic, HapticType } from '../utils';
 import styles from './styles.module.scss';
 
 interface ContextMenuPanelProps {
@@ -106,7 +106,11 @@ export function ContextMenuPanel({
                 {actions.map((action) => (
                     <button
                         key={action.id}
-                        onClick={() => onActionSelect(action)}
+                        onClick={() => {
+                            // Хаптик при выборе действия
+                            triggerHaptic(action.destructive ? HapticType.WARNING : HapticType.SELECTION);
+                            onActionSelect(action);
+                        }}
                         className={classNames(styles.actionButton, {
                             [styles.destructive]: action.destructive
                         })}
