@@ -303,7 +303,7 @@ export function moveElementToOverlay(
     element.style.left = `${rect.left}px`;
     element.style.width = `${rect.width}px`; // Сохраняем ширину
     element.style.zIndex = '1000';
-    element.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    element.style.transition = 'top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)'; // БЕЗ opacity!
 
     // Если есть финальная позиция, анимируем к ней
     if (finalPosition) {
@@ -354,7 +354,7 @@ export function restoreElementToOriginalPosition(
     });
 
     // Анимируем возврат к оригинальной позиции
-    element.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    element.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // БЕЗ opacity!
     element.style.top = `${originalRect.top}px`;
     element.style.left = `${originalRect.left}px`;
     element.style.width = `${originalRect.width}px`;
@@ -482,11 +482,56 @@ export function calculateMenuDimensions(actionsCount: number, maxHeightVH: numbe
 }
 
 /**
+ * Расчет позиции меню относительно элемента (как в Telegram)
+ */
+export function calculateMenuPositionRelativeToElement(
+    elementRect: DOMRect,
+    menuWidth: number = 250
+): {
+    left: number;
+    top: number;
+} {
+    const viewport = getViewportRect();
+    const safeArea = getSafeArea();
+
+    // Выравниваем меню по правому краю элемента
+    const elementRight = elementRect.right;
+    let menuLeft = elementRight - menuWidth;
+
+    // Проверяем, чтобы меню не выходило за левый край экрана
+    if (menuLeft < safeArea.left + 16) {
+        menuLeft = safeArea.left + 16;
+    }
+
+    // Проверяем, чтобы меню не выходило за правый край экрана
+    if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
+        menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
+    }
+
+    // Вычисляем позицию меню снизу экрана
+    const menuBottom = safeArea.bottom + 16;
+    const menuTop = viewport.h - menuBottom;
+
+    console.log('calculateMenuPositionRelativeToElement:', {
+        elementRight,
+        menuWidth,
+        menuLeft,
+        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width }
+    });
+
+    return {
+        left: menuLeft,
+        top: menuTop
+    };
+}
+
+/**
  * Расчет финальной позиции элемента (как в Telegram)
  */
 export function calculateElementFinalPosition(
     elementRect: DOMRect,
     menuHeight: number,
+    menuLeft: number,
     edgeMargin: number = 12
 ): {
     finalTop: number;
@@ -507,7 +552,6 @@ export function calculateElementFinalPosition(
 
     // Проверяем, помещается ли элемент в видимую область
     const elementTop = finalTop;
-    const elementBottom = finalTop + elementHeight;
 
     // Если элемент выходит за верх экрана, нужно скроллить
     const needsScroll = elementTop < safeArea.top;

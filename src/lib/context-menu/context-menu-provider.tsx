@@ -25,7 +25,8 @@ import {
     getScrollableContainers,
     calculateMenuDimensions,
     checkElementAndMenuFit,
-    calculateElementFinalPosition
+    calculateElementFinalPosition,
+    calculateMenuPositionRelativeToElement
 } from './utils';
 import { OverlayContainer } from './components/overlay-container';
 
@@ -40,6 +41,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         originalElement: null,
         placeholderElement: null,
         originalPosition: null,
+        menuPosition: null,
         originalParent: null,
         originalNextSibling: null,
         originalStyles: {
@@ -79,10 +81,14 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 state.config.maxMenuHeightVH || 60
             );
 
+            // Вычисляем позицию меню относительно элемента
+            const menuPos = calculateMenuPositionRelativeToElement(rect, 250);
+
             // Вычисляем финальную позицию элемента (как в Telegram)
             const finalPosition = calculateElementFinalPosition(
                 rect,
                 menuDimensions.height,
+                menuPos.left,
                 state.config.edgeMargin || 12
             );
 
@@ -103,6 +109,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             setState(prev => ({
                 ...prev,
                 placeholderElement: result.placeholder,
+                menuPosition: menuPos,
                 originalParent: result.originalParent,
                 originalNextSibling: result.originalNextSibling,
                 originalStyles: result.originalStyles
@@ -185,6 +192,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             isOpen: true,
             originalElement: element,
             originalPosition: rect,
+            menuPosition: null, // Будет установлена в useEffect
             originalParent,
             originalNextSibling,
             originalStyles,
@@ -267,6 +275,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 originalElement: null,
                 placeholderElement: null,
                 originalPosition: null,
+                menuPosition: null,
                 originalParent: null,
                 originalNextSibling: null,
                 originalStyles: {

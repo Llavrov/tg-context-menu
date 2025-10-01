@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useContextMenu } from '@/lib/context-menu';
+import { Reply, Forward, Copy, Pin, Edit, Trash2 } from 'lucide-react';
 
 // Пример сообщений для демонстрации
 const sampleMessages = [
@@ -119,7 +120,7 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
         {
             id: 'reply',
             label: 'Ответить',
-            icon: '↩️',
+            icon: <Reply size={20} />,
             onSelect: () => {
                 console.log(`Ответить на сообщение: ${message.text}`);
                 alert(`Ответить на: "${message.text}"`);
@@ -128,7 +129,7 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
         {
             id: 'forward',
             label: 'Переслать',
-            icon: '➡️',
+            icon: <Forward size={20} />,
             onSelect: () => {
                 console.log(`Переслать сообщение: ${message.text}`);
                 alert(`Переслать: "${message.text}"`);
@@ -137,7 +138,7 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
         {
             id: 'copy',
             label: 'Копировать',
-            icon: '📋',
+            icon: <Copy size={20} />,
             shortcut: 'Cmd+C',
             onSelect: () => {
                 navigator.clipboard.writeText(message.text);
@@ -148,7 +149,7 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
         {
             id: 'pin',
             label: 'Закрепить',
-            icon: '📌',
+            icon: <Pin size={20} />,
             onSelect: () => {
                 console.log(`Закрепить сообщение: ${message.id}`);
                 alert(`Сообщение закреплено!`);
@@ -157,7 +158,7 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
         {
             id: 'edit',
             label: 'Редактировать',
-            icon: '✏️',
+            icon: <Edit size={20} />,
             onSelect: () => {
                 console.log(`Редактировать сообщение: ${message.id}`);
                 alert(`Редактировать сообщение #${message.id}`);
@@ -166,7 +167,7 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
         {
             id: 'delete',
             label: 'Удалить',
-            icon: '🗑️',
+            icon: <Trash2 size={20} />,
             destructive: true,
             onSelect: () => {
                 console.log(`Удалить сообщение: ${message.id}`);

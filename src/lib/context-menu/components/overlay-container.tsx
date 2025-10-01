@@ -22,12 +22,8 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
 
         return (
             <AnimatePresence>
-                <motion.div
+                <div
                     ref={ref}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
                     className={styles.overlayContainer}
                 >
                     {/* Backdrop */}
@@ -35,7 +31,11 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{
+                            duration: 0.35,
+                            delay: 0.15, // Задержка - сначала перемещается элемент
+                            ease: [0.64, 0, 0.78, 0] // easeInQuint
+                        }}
                         className={styles.backdrop}
                         onClick={onClose}
                     />
@@ -44,18 +44,20 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                     {/* Он будет отрендерен как дочерний элемент overlayRef.current */}
 
                     {/* Контекстное меню */}
-                    <ContextMenuPanel
-                        actions={state.config.actions}
-                        position={{
-                            left: 0,
-                            bottom: 16,
-                            width: window.innerWidth
-                        }}
-                        maxHeightVH={state.config.maxMenuHeightVH || 60}
-                        onActionSelect={onActionSelect}
-                        onClose={onClose}
-                    />
-                </motion.div>
+                    {state.menuPosition && (
+                        <ContextMenuPanel
+                            actions={state.config.actions}
+                            position={{
+                                left: state.menuPosition.left,
+                                bottom: window.innerHeight - state.menuPosition.top,
+                                width: 250
+                            }}
+                            maxHeightVH={state.config.maxMenuHeightVH || 60}
+                            onActionSelect={onActionSelect}
+                            onClose={onClose}
+                        />
+                    )}
+                </div>
             </AnimatePresence>
         );
     });

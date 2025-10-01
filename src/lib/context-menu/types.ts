@@ -24,6 +24,7 @@ export type OverlayState = {
     originalElement: HTMLElement | null;
     placeholderElement: HTMLElement | null;
     originalPosition: DOMRect | null;
+    menuPosition: { left: number; top: number } | null;
     originalParent: HTMLElement | null;
     originalNextSibling: Node | null;
     originalStyles: {
@@ -65,7 +66,7 @@ export type SafeArea = {
 
 
 export type MenuPosition = {
-    left: number;
+    left: number | string;
     bottom: number;
     width: number;
 };
