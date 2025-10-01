@@ -2,9 +2,6 @@
 
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import classNames from 'classnames';
-import styles from './styles.module.scss';
 import {
     ContextMenuContextType,
     ContextMenuState,
@@ -15,14 +12,10 @@ import { ContextMenuContext } from './context';
 import {
     createLongPressController,
     ensureVisibleWithMenu,
-    positionMenu,
-    getViewportRect,
-    getSafeArea,
     createGlobalKeyHandler,
     moveElementToOverlay,
     restoreElementToOriginalPosition,
     lockScroll,
-    getScrollableContainers,
     calculateMenuDimensions,
     checkElementAndMenuFit,
     calculateElementFinalPosition,
@@ -125,14 +118,14 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         }
     }, [state.isOpen]);
 
-    // Обработка скролла и ресайза для обновления позиции emoji-bar
+    // Обработка скролла и ресайза для обновления позиции
     useEffect(() => {
-        if (!state.isOpen || !state.element) return;
+        if (!state.isOpen || !state.originalElement) return;
 
         const updatePosition = () => {
-            if (state.element) {
-                const rect = state.element.getBoundingClientRect();
-                setState(prev => ({ ...prev, elementRect: rect }));
+            if (state.originalElement) {
+                const rect = state.originalElement.getBoundingClientRect();
+                setState(prev => ({ ...prev, originalPosition: rect }));
             }
         };
 
@@ -147,7 +140,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 window.removeEventListener('resize', updatePosition);
             };
         }
-    }, [state.isOpen, state.element, state.config?.scrollContainer]);
+    }, [state.isOpen, state.originalElement, state.config?.scrollContainer]);
 
     const open = useCallback(async (element: HTMLElement, config: OpenContextMenuConfig) => {
         const rect = element.getBoundingClientRect();

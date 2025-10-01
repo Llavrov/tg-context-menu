@@ -142,6 +142,7 @@ export function createLongPressController(
         target.style.userSelect = 'none';
         target.style.webkitUserSelect = 'none';
         if ('webkitTouchCallout' in target.style) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (target.style as any).webkitTouchCallout = 'none';
         }
 
@@ -241,7 +242,6 @@ export function createGlobalKeyHandler(onEscape: () => void): () => void {
  * Сохранение оригинальных стилей элемента
  */
 export function saveElementStyles(element: HTMLElement) {
-    const computedStyle = getComputedStyle(element);
     return {
         position: element.style.position || 'static',
         top: element.style.top || 'auto',

@@ -2,15 +2,14 @@
 
 import React, { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { OverlayState } from '../types';
+import { OverlayState, ContextMenuAction } from '../types';
 import { ContextMenuPanel } from './context-menu-panel';
-import { calculateMenuDimensions } from '../utils';
 import styles from './styles.module.scss';
 
 interface OverlayContainerProps {
     state: OverlayState;
     onClose: () => void;
-    onActionSelect: (action: any) => void;
+    onActionSelect: (action: ContextMenuAction) => void;
 }
 
 export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps>(
