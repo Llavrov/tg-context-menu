@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '7221839328:AAHOBs3EpNakH39TaTxHhfugXx6vLZuVBIc';
 const WEBAPP_URL = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
-    : 'https://your-app.vercel.app';
+    : 'https://tg-context-menu.vercel.app';
 
 export async function POST(request: NextRequest) {
     try {
