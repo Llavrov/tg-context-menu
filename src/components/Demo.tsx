@@ -209,7 +209,7 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
 
 export default function Demo() {
     const hapticSupported = isHapticSupported();
-    
+
     return (
         <div className="max-w-2xl mx-auto py-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

@@ -5,7 +5,7 @@ import { ViewportRect, SafeArea, MenuPosition, LongPressOpts } from './types';
  */
 export enum HapticType {
     LIGHT = 'light',
-    MEDIUM = 'medium', 
+    MEDIUM = 'medium',
     HEAVY = 'heavy',
     SUCCESS = 'success',
     WARNING = 'warning',
@@ -35,7 +35,7 @@ export function triggerHaptic(type: HapticType | number | number[] = HapticType.
     }
 
     let pattern: number | number[];
-    
+
     if (typeof type === 'number' || Array.isArray(type)) {
         // Прямая передача паттерна
         pattern = type;
