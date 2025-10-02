@@ -294,7 +294,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             // Если не нужно перемещать - меню под элементом
             const alignment = config.menuAlignment || 'right';
             const edgeMargin = config.edgeMargin || 12;
-            
+
             // Используем новую функцию для расчета позиции под элементом
             const position = calculateMenuPositionUnderElement(
                 rect,
@@ -302,7 +302,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 alignment,
                 edgeMargin
             );
-            
+
             menuPos = {
                 left: position.left,
                 top: position.top
@@ -340,9 +340,9 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             const fitCheck = checkElementAndMenuFit(rect, menuDimensions.height, config.edgeMargin || 12);
             if (fitCheck.needsScroll) {
                 await ensureVisibleWithMenu(rect, menuDimensions.height, {
-            edgeMargin: config.edgeMargin || 12,
-            scrollContainer: config.scrollContainer || 'window',
-        });
+                    edgeMargin: config.edgeMargin || 12,
+                    scrollContainer: config.scrollContainer || 'window',
+                });
             }
         }
 
@@ -416,8 +416,8 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         setTimeout(() => {
             console.log('CLOSE: Clearing state and ref');
             placeholderRef.current = null; // Очищаем ref
-        setState({
-            isOpen: false,
+            setState({
+                isOpen: false,
                 originalElement: null,
                 placeholderElement: null,
                 originalPosition: null,
@@ -432,8 +432,8 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                     transform: 'none',
                 },
                 animationPhase: 'initial',
-            config: null,
-        });
+                config: null,
+            });
         }, 350); // Увеличиваем время для завершения анимации возврата
     }, [state.originalElement, state.originalParent, state.originalNextSibling, state.originalStyles, state.placeholderElement, state.originalPosition]);
 
@@ -466,6 +466,11 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             onPointerMove: (e: React.PointerEvent) => {
                 if (longPressControllerRef.current) {
                     longPressControllerRef.current.onPointerMove(e);
+                }
+            },
+            onClick: (e: React.MouseEvent) => {
+                if (longPressControllerRef.current) {
+                    longPressControllerRef.current.onClick(e);
                 }
             },
             onContextMenu: (e: React.MouseEvent) => {
@@ -507,7 +512,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                     ref={overlayRef}
                     state={state}
                     onClose={() => close('backdrop')}
-                                onActionSelect={handleActionSelect}
+                    onActionSelect={handleActionSelect}
                 />,
                 portalRef.current || document.body
             )}

@@ -158,6 +158,7 @@ export function createLongPressController(
     onPointerUp: () => void;
     onPointerCancel: () => void;
     onPointerMove: (e: React.PointerEvent) => void;
+    onClick: (e: React.MouseEvent) => void;
     dispose: () => void;
 } {
     const { delayMs = 450, moveTolerance = 10 } = opts;
@@ -200,6 +201,26 @@ export function createLongPressController(
     const removeScaleAnimation = (element: HTMLElement) => {
         element.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         element.style.transform = 'scale(1)';
+    };
+
+    const applyTapAnimation = (element: HTMLElement) => {
+        // Анимация при тапе: scale(0.9) -> scale(1)
+        element.style.transition = 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        element.style.transform = 'scale(0.9)';
+        
+        // Хаптик при тапе
+        triggerHaptic(HapticType.SELECTION);
+        
+        // Возвращаем к нормальному размеру
+        requestAnimationFrame(() => {
+            element.style.transform = 'scale(1)';
+            
+            // Очищаем стили после анимации
+            setTimeout(() => {
+                element.style.transform = '';
+                element.style.transition = '';
+            }, 150);
+        });
     };
 
     const onPointerDown = (e: React.PointerEvent) => {
@@ -260,6 +281,12 @@ export function createLongPressController(
         }
     };
 
+    const onClick = (e: React.MouseEvent) => {
+        // Анимация при обычном клике (не долгое нажатие)
+        const target = e.currentTarget as HTMLElement;
+        applyTapAnimation(target);
+    };
+
     const dispose = () => {
         reset();
     };
@@ -269,6 +296,7 @@ export function createLongPressController(
         onPointerUp,
         onPointerCancel,
         onPointerMove,
+        onClick,
         dispose,
     };
 }

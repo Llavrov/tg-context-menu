@@ -15,49 +15,54 @@ interface OverlayContainerProps {
 export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps>(
     ({ state, onClose, onActionSelect }, ref) => {
 
-        if (!state.isOpen || !state.config) {
-            return null;
-        }
-
         return (
             <AnimatePresence>
-                <div
-                    ref={ref}
-                    className={styles.overlayContainer}
-                >
-                    {/* Backdrop */}
+                {state.isOpen && state.config && (
                     <motion.div
+                        ref={ref}
+                        className={styles.overlayContainer}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{
-                            duration: 0.35,
-                            delay: 0.15, // Задержка - сначала перемещается элемент
-                            ease: [0.64, 0, 0.78, 0] // easeInQuint
+                            duration: 0.3,
+                            ease: [0.4, 0, 0.2, 1] // easeOut
                         }}
-                        className={styles.backdrop}
-                        onClick={onClose}
-                    />
-
-                    {/* Оригинальный элемент уже перемещен в этот контейнер */}
-                    {/* Он будет отрендерен как дочерний элемент overlayRef.current */}
-
-                    {/* Контекстное меню */}
-                    {state.menuPosition && (
-                        <ContextMenuPanel
-                            actions={state.config.actions}
-                            position={{
-                                left: Number(state.menuPosition.left),
-                                top: (state.menuPosition as MenuPosition).top || undefined,
-                                bottom: (state.menuPosition as MenuPosition).bottom || undefined,
-                                width: 250
+                    >
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{
+                                duration: 0.35,
+                                delay: 0.15, // Задержка - сначала перемещается элемент
+                                ease: [0.64, 0, 0.78, 0] // easeInQuint
                             }}
-                            maxHeightVH={state.config.maxMenuHeightVH || 60}
-                            onActionSelect={onActionSelect}
-                            onClose={onClose}
+                            className={styles.backdrop}
+                            onClick={onClose}
                         />
-                    )}
-                </div>
+
+                        {/* Оригинальный элемент уже перемещен в этот контейнер */}
+                        {/* Он будет отрендерен как дочерний элемент overlayRef.current */}
+
+                        {/* Контекстное меню */}
+                        {state.menuPosition && (
+                            <ContextMenuPanel
+                                actions={state.config.actions}
+                                position={{
+                                    left: Number(state.menuPosition.left),
+                                    top: (state.menuPosition as MenuPosition).top || undefined,
+                                    bottom: (state.menuPosition as MenuPosition).bottom || undefined,
+                                    width: 250
+                                }}
+                                maxHeightVH={state.config.maxMenuHeightVH || 60}
+                                onActionSelect={onActionSelect}
+                                onClose={onClose}
+                            />
+                        )}
+                    </motion.div>
+                )}
             </AnimatePresence>
         );
     });

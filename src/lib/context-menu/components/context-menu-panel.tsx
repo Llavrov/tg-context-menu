@@ -83,9 +83,15 @@ export function ContextMenuPanel({
             exit={{ opacity: 0, scale: 0.1, y: -20 }}
             transition={{
                 duration: 0.4,
-                ease: [0.34, 1.56, 0.64, 1], // easeOutBack для эффектного появления
-                scale: { duration: 0.5 }, // Медленнее scale
-                opacity: { duration: 0.25 }
+                ease: [0.25, 0.46, 0.45, 0.94], // Более плавная кривая как в Telegram
+                scale: { 
+                    duration: 0.5,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                },
+                opacity: { 
+                    duration: 0.3,
+                    ease: [0.25, 0.46, 0.45, 0.94]
+                }
             }}
             className={styles.panel}
             style={{
