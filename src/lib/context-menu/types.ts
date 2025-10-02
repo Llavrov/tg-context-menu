@@ -24,7 +24,7 @@ export type OverlayState = {
     originalElement: HTMLElement | null;
     placeholderElement: HTMLElement | null;
     originalPosition: DOMRect | null;
-    menuPosition: { left: number; top: number } | null;
+    menuPosition: MenuPosition | null;
     originalParent: HTMLElement | null;
     originalNextSibling: Node | null;
     originalStyles: {

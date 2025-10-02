@@ -47,8 +47,8 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                         <ContextMenuPanel
                             actions={state.config.actions}
                             position={{
-                                left: state.menuPosition.left,
-                                bottom: (state.menuPosition as MenuPosition).bottom || (state.menuPosition.top ? window.innerHeight - state.menuPosition.top : 0),
+                                left: Number(state.menuPosition.left),
+                                bottom: (state.menuPosition as MenuPosition).bottom || 0,
                                 width: 250
                             }}
                             maxHeightVH={state.config.maxMenuHeightVH || 60}

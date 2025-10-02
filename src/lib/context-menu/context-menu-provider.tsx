@@ -6,7 +6,8 @@ import {
     ContextMenuContextType,
     ContextMenuState,
     OpenContextMenuConfig,
-    ContextMenuAction
+    ContextMenuAction,
+    MenuPosition
 } from './types';
 import { ContextMenuContext } from './context';
 import {
@@ -261,15 +262,15 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             const menuTop = viewport.h - menuBottom;
 
             menuPos = {
-                left: menuLeft,
-                top: menuTop
-            };
+                left: Number(menuLeft),
+                bottom: menuBottom
+            } as MenuPosition;
             
             console.log('OPEN: Menu position (should move)', {
                 menuPos,
                 elementRight,
                 menuLeft,
-                menuTop,
+                menuBottom,
                 viewport: { w: viewport.w, h: viewport.h },
                 safeArea
             });
@@ -293,9 +294,9 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             }
 
             menuPos = {
-                left: menuLeft,
-                top: rect.bottom + 12 // 12px отступ от элемента
-            };
+                left: Number(menuLeft),
+                bottom: window.innerHeight - rect.bottom - 12 // 12px отступ от элемента
+            } as MenuPosition;
             
             console.log('OPEN: Menu position (should NOT move)', {
                 menuPos,
@@ -307,7 +308,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                     width: rect.width
                 },
                 menuLeft,
-                menuTop: rect.bottom + 12,
+                menuBottom: window.innerHeight - rect.bottom - 12,
                 viewport: { w: viewport.w, h: viewport.h },
                 safeArea
             });
