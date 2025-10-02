@@ -664,7 +664,7 @@ export function shouldMoveElement(
     edgeMargin: number = 12
 ): {
     shouldMove: boolean;
-    reason: 'fits' | 'too_high' | 'too_large' | 'viewport_overflow';
+    reason: 'fits' | 'too_high' | 'too_large' | 'viewport_overflow' | 'upper_overflow';
 } {
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
@@ -680,14 +680,18 @@ export function shouldMoveElement(
 
     // Проверяем, помещается ли меню под элементом
     const menuFitsBelow = elementBottomAtCurrentPosition + edgeMargin + menuHeight <= viewport.h - safeArea.bottom - 16;
-
+    
     // Проверяем, не выходит ли элемент за верх экрана
     const elementFitsInViewport = elementTopAtCurrentPosition >= safeArea.top;
-
+    
     // Проверяем, не слишком ли большой элемент (высота элемента + меню > высота экрана)
     const totalHeight = elementRect.height + menuHeight + edgeMargin;
     const viewportHeight = viewport.h - safeArea.top - safeArea.bottom - 32; // 32px отступы
     const isTooLarge = totalHeight > viewportHeight;
+    
+    // Дополнительная проверка: если элемент в верхней части экрана и меню не помещается под ним
+    const isInUpperHalf = elementTopAtCurrentPosition < viewport.h / 2;
+    const menuWouldOverflow = elementBottomAtCurrentPosition + edgeMargin + menuHeight > viewport.h - safeArea.bottom - 16;
 
     console.log('SHOULD_MOVE_ELEMENT:', {
         elementRect: {
@@ -703,24 +707,31 @@ export function shouldMoveElement(
         elementFitsInViewport,
         isTooLarge,
         totalHeight,
-        viewportHeight
+        viewportHeight,
+        isInUpperHalf,
+        menuWouldOverflow
     });
 
     // Если элемент слишком большой для экрана - перемещаем
     if (isTooLarge) {
         return { shouldMove: true, reason: 'too_large' };
     }
-
+    
     // Если элемент не помещается в viewport (выходит за верх) - перемещаем
     if (!elementFitsInViewport) {
         return { shouldMove: true, reason: 'viewport_overflow' };
     }
-
+    
     // Если меню не помещается под элементом - перемещаем
     if (!menuFitsBelow) {
         return { shouldMove: true, reason: 'too_high' };
     }
-
+    
+    // Дополнительная проверка: если элемент в верхней части и меню переполняется
+    if (isInUpperHalf && menuWouldOverflow) {
+        return { shouldMove: true, reason: 'upper_overflow' };
+    }
+    
     // Иначе - оставляем на месте
     return { shouldMove: false, reason: 'fits' };
 }
