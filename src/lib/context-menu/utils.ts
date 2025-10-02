@@ -1,6 +1,54 @@
 import { ViewportRect, SafeArea, MenuPosition, LongPressOpts } from './types';
 
 /**
+ * Константы для контекстного меню
+ */
+export const CONTEXT_MENU_CONSTANTS = {
+    // Размеры меню
+    MENU_WIDTH: 250,
+    MENU_ITEM_HEIGHT: 52,
+    MENU_PADDING: 32,
+    MENU_MAX_HEIGHT_VH: 60,
+
+    // Отступы и границы
+    SCREEN_MARGIN: 16,
+    ELEMENT_MENU_MARGIN: 12,
+    VIEWPORT_MARGIN: 32,
+
+    // Анимации
+    LONG_PRESS_DELAY: 350,
+    SCALE_ANIMATION_DURATION: 350,
+    POSITION_ANIMATION_DURATION: 400,
+    RESTORE_ANIMATION_DURATION: 300,
+    SCROLL_ANIMATION_DELAY: 300,
+
+    // Z-index
+    OVERLAY_Z_INDEX: 1000,
+
+    // Движение
+    MOVE_TOLERANCE: 10,
+
+    // Масштабирование
+    SCALE_DOWN_VALUE: 0.95,
+    SCALE_UP_VALUE: 1,
+
+    // Fallback размеры (iPhone X)
+    DEFAULT_VIEWPORT_WIDTH: 375,
+    DEFAULT_VIEWPORT_HEIGHT: 812,
+
+    // Минимальная высота для меню
+    MIN_MENU_HEIGHT: 300,
+    MENU_HEIGHT_BUFFER: 50,
+
+    // Таймеры для анимаций
+    LONG_PRESS_TIMEOUT: 350, // Время до начала анимации scale
+    SCALE_ANIMATION_TIMEOUT: 350, // Время между scale 0.95 и scale 1
+    STYLE_CLEAR_TIMEOUT: 350, // Время до очистки стилей после анимации
+    RESTORE_ANIMATION_TIMEOUT: 300, // Время анимации возврата элемента
+    CLOSE_STATE_CLEAR_TIMEOUT: 350, // Время до очистки состояния при закрытии
+} as const;
+
+/**
  * Типы хаптической обратной связи
  */
 export enum HapticType {
@@ -134,7 +182,10 @@ export function isHapticSupported(): boolean {
  */
 export function getViewportRect(): ViewportRect {
     if (typeof window === 'undefined') {
-        return { w: 375, h: 812 }; // iPhone X размеры по умолчанию
+        return {
+            w: CONTEXT_MENU_CONSTANTS.DEFAULT_VIEWPORT_WIDTH,
+            h: CONTEXT_MENU_CONSTANTS.DEFAULT_VIEWPORT_HEIGHT
+        };
     }
 
     return {
@@ -166,12 +217,12 @@ export function getSafeArea(): SafeArea {
  * Позиционирование меню снизу экрана
  */
 export function positionMenu(viewportW: number, safeBottom: number = 0): MenuPosition {
-    const menuWidth = Math.min(viewportW - 32, 320); // Максимальная ширина 320px, отступы по 16px с каждой стороны
-    const left = (viewportW - menuWidth) / 2; // Центрируем меню
+    const menuWidth = Math.min(viewportW - CONTEXT_MENU_CONSTANTS.VIEWPORT_MARGIN, 320);
+    const left = (viewportW - menuWidth) / 2;
 
     return {
         left: left,
-        bottom: safeBottom + 16, // Отступ от нижней части экрана
+        bottom: safeBottom + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN,
         width: menuWidth,
     };
 }
@@ -214,7 +265,7 @@ export async function ensureVisibleWithMenu(
         }
 
         // Ждем завершения анимации скролла
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, CONTEXT_MENU_CONSTANTS.SCROLL_ANIMATION_DELAY));
     }
 }
 
@@ -232,162 +283,104 @@ export function createLongPressController(
     onClick: (e: React.MouseEvent) => void;
     dispose: () => void;
 } {
-    const { delayMs = 350, moveTolerance = 10 } = opts; // 600ms - время до начала анимации scale
+    const {
+        delayMs = CONTEXT_MENU_CONSTANTS.LONG_PRESS_DELAY,
+        moveTolerance = CONTEXT_MENU_CONSTANTS.MOVE_TOLERANCE
+    } = opts;
 
     let timeoutId: NodeJS.Timeout | null = null;
     let startPos: { x: number; y: number } | null = null;
     let isActive = false;
     let currentElement: HTMLElement | null = null;
-    let wasLongPress = false; // Флаг для отслеживания долгого нажатия
-    let originalRect: DOMRect | null = null; // Сохраняем оригинальные размеры ДО масштабирования
+    let wasLongPress = false;
+    let originalRect: DOMRect | null = null;
 
-    const clearTimeoutId = () => {
+    const reset = () => {
         if (timeoutId) {
             clearTimeout(timeoutId);
             timeoutId = null;
         }
-    };
-
-    const reset = (skipScaleReset = false) => {
-        clearTimeoutId();
         startPos = null;
         isActive = false;
-        wasLongPress = false; // Сбрасываем флаг долгого нажатия
-
-        // Возвращаем scale обратно только если не пропускаем
-        if (currentElement && !skipScaleReset) {
-            removeScaleAnimation(currentElement);
-            // Очищаем стили после анимации
-            setTimeout(() => {
-                if (currentElement) {
-                    currentElement.style.transform = '';
-                    currentElement.style.transition = '';
-                    currentElement.style.transformOrigin = ''; // Очищаем transform-origin
-                }
-            }, 350); // Ждем завершения анимации (0.35s)
-        }
+        wasLongPress = false;
         currentElement = null;
+        originalRect = null;
     };
 
     const applyScaleAnimation = (element: HTMLElement) => {
-        console.log('applyScaleAnimation: Starting scale animation on element:', element);
-
-        // Сохраняем текущие transition стили
-        const currentTransition = element.style.transition;
-        console.log('applyScaleAnimation: Current transition before:', currentTransition);
-
-        // Устанавливаем центр анимации в центр элемента
         element.style.transformOrigin = 'center';
-
-        // Принудительно устанавливаем transition через setProperty для лучшей совместимости
-        element.style.setProperty('transition', 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)', 'important');
-        element.style.transform = 'scale(0.95)';
-
-        console.log('applyScaleAnimation: Applied styles:', {
-            transformOrigin: element.style.transformOrigin,
-            transition: element.style.transition,
-            transform: element.style.transform
-        });
+        element.style.setProperty(
+            'transition',
+            `transform ${CONTEXT_MENU_CONSTANTS.SCALE_ANIMATION_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
+            'important'
+        );
+        element.style.transform = `scale(${CONTEXT_MENU_CONSTANTS.SCALE_DOWN_VALUE})`;
     };
 
     const removeScaleAnimation = (element: HTMLElement) => {
-        console.log('removeScaleAnimation: Starting scale removal on element:', element);
-
-        // Устанавливаем центр анимации в центр элемента
         element.style.transformOrigin = 'center';
-
-        // Принудительно устанавливаем transition через setProperty для лучшей совместимости
-        element.style.setProperty('transition', 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)', 'important');
-        element.style.transform = 'scale(1)';
-
-        console.log('removeScaleAnimation: Applied styles:', {
-            transformOrigin: element.style.transformOrigin,
-            transition: element.style.transition,
-            transform: element.style.transform
-        });
+        element.style.setProperty(
+            'transition',
+            `transform ${CONTEXT_MENU_CONSTANTS.SCALE_ANIMATION_DURATION}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`,
+            'important'
+        );
+        element.style.transform = `scale(${CONTEXT_MENU_CONSTANTS.SCALE_UP_VALUE})`;
     };
 
-
     const onPointerDown = (e: React.PointerEvent) => {
-        // Игнорируем правую кнопку мыши
         if (e.button === 2) return;
 
         const target = e.currentTarget as HTMLElement;
         startPos = { x: e.clientX, y: e.clientY };
         isActive = true;
         currentElement = target;
-
-        // Сохраняем оригинальные размеры ДО масштабирования
         originalRect = target.getBoundingClientRect();
 
         // Предотвращаем выделение текста
         target.style.userSelect = 'none';
         target.style.webkitUserSelect = 'none';
-        if ('webkitTouchCallout' in target.style) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (target.style as any).webkitTouchCallout = 'none';
-        }
 
         timeoutId = setTimeout(() => {
             if (isActive && startPos) {
-                // Применяем анимацию scale только при долгом нажатии
-                wasLongPress = true; // Устанавливаем флаг долгого нажатия
+                wasLongPress = true;
                 applyScaleAnimation(target);
                 triggerHaptic(HapticType.MEDIUM);
 
-                // Через 350ms (время анимации scale 0.95) возвращаем к scale 1 и ОДНОВРЕМЕННО открываем меню
+                // Через время анимации возвращаем к scale 1 и открываем меню
                 setTimeout(() => {
                     if (isActive && currentElement) {
                         removeScaleAnimation(currentElement);
-                        // Открываем меню ОДНОВРЕМЕННО с анимацией scale 1
-                        if (isActive) {
-                            fire(originalRect || undefined);
-                        }
+                        fire(originalRect || undefined);
 
-                        // Через еще 350ms (время анимации scale 1) очищаем состояние
+                        // Очищаем стили через время анимации
                         setTimeout(() => {
                             if (currentElement) {
                                 currentElement.style.transform = '';
                                 currentElement.style.transition = '';
                                 currentElement.style.transformOrigin = '';
                             }
-                            // Сбрасываем состояние после завершения всех анимаций
-                            clearTimeoutId();
-                            startPos = null;
-                            isActive = false;
-                            wasLongPress = false;
-                            currentElement = null;
-                        }, 350);
+                            reset();
+                        }, CONTEXT_MENU_CONSTANTS.STYLE_CLEAR_TIMEOUT);
                     }
-                }, 350);
+                }, CONTEXT_MENU_CONSTANTS.SCALE_ANIMATION_TIMEOUT);
             }
         }, delayMs);
     };
 
     const onPointerUp = () => {
-        // Если это было долгое нажатие, НЕ сбрасываем анимацию - пусть она завершится
-        if (wasLongPress) {
-            // НЕ вызываем reset() - анимация должна завершиться сама
-            console.log('onPointerUp: Long press detected, letting animation complete');
-        } else {
-            // Убираем анимацию перед сбросом только для обычных нажатий
-            if (currentElement) {
-                removeScaleAnimation(currentElement);
-            }
+        if (!wasLongPress && currentElement) {
+            removeScaleAnimation(currentElement);
+        }
+        if (!wasLongPress) {
             reset();
         }
     };
 
     const onPointerCancel = () => {
-        // Если это было долгое нажатие, НЕ сбрасываем анимацию - пусть она завершится
-        if (wasLongPress) {
-            // НЕ вызываем reset() - анимация должна завершиться сама
-            console.log('onPointerCancel: Long press detected, letting animation complete');
-        } else {
-            // Убираем анимацию перед сбросом только для обычных нажатий
-            if (currentElement) {
-                removeScaleAnimation(currentElement);
-            }
+        if (!wasLongPress && currentElement) {
+            removeScaleAnimation(currentElement);
+        }
+        if (!wasLongPress) {
             reset();
         }
     };
@@ -399,7 +392,6 @@ export function createLongPressController(
         const deltaY = Math.abs(e.clientY - startPos.y);
 
         if (deltaX > moveTolerance || deltaY > moveTolerance) {
-            // Убираем анимацию при движении
             if (currentElement) {
                 removeScaleAnimation(currentElement);
             }
@@ -407,10 +399,8 @@ export function createLongPressController(
         }
     };
 
-    const onClick = (e: React.MouseEvent) => {
-        console.log('createLongPressController: onClick triggered', e.currentTarget, 'wasLongPress:', wasLongPress);
-        // При обычном клике не должно быть хаптика, только при долгом нажатии
-        // Хаптик убран из обычного тапа
+    const onClick = () => {
+        // Обычный клик - ничего не делаем
     };
 
     const dispose = () => {
@@ -503,42 +493,20 @@ export function createPlaceholder(element: HTMLElement, originalRect: DOMRect): 
     placeholder.style.width = `${originalRect.width}px`;
     placeholder.style.height = `${originalRect.height}px`;
 
-    // Копируем все margin для сохранения правильного позиционирования
+    // Копируем margin для сохранения позиционирования
     placeholder.style.marginTop = computedStyle.marginTop;
     placeholder.style.marginBottom = computedStyle.marginBottom;
     placeholder.style.marginLeft = computedStyle.marginLeft;
     placeholder.style.marginRight = computedStyle.marginRight;
 
-    // НЕ копируем padding - используем точные размеры из getBoundingClientRect
-    // placeholder.style.paddingTop = computedStyle.paddingTop;
-    // placeholder.style.paddingBottom = computedStyle.paddingBottom;
-    // placeholder.style.paddingLeft = computedStyle.paddingLeft;
-    // placeholder.style.paddingRight = computedStyle.paddingRight;
-
-    // Копируем border для сохранения границ
+    // Копируем border
     placeholder.style.borderTop = computedStyle.borderTop;
     placeholder.style.borderBottom = computedStyle.borderBottom;
     placeholder.style.borderLeft = computedStyle.borderLeft;
     placeholder.style.borderRight = computedStyle.borderRight;
     placeholder.style.borderRadius = computedStyle.borderRadius;
-    placeholder.style.visibility = 'hidden'; // Делаем невидимым, но сохраняем место
 
-    console.log('createPlaceholder:', {
-        originalRect: {
-            width: originalRect.width,
-            height: originalRect.height,
-            top: originalRect.top,
-            left: originalRect.left,
-            bottom: originalRect.bottom,
-            right: originalRect.right
-        },
-        originalMarginBottom: computedStyle.marginBottom,
-        placeholder: {
-            width: placeholder.style.width,
-            height: placeholder.style.height,
-            padding: `${computedStyle.paddingTop} ${computedStyle.paddingRight} ${computedStyle.paddingBottom} ${computedStyle.paddingLeft}`
-        }
-    });
+    placeholder.style.visibility = 'hidden';
 
     return placeholder;
 }
@@ -557,7 +525,7 @@ export function moveElementToOverlay(
     const originalNextSibling = element.nextSibling;
     const originalStyles = saveElementStyles(element);
 
-    // Создаем placeholder для сохранения места (передаем rect как originalRect)
+    // Создаем placeholder
     const placeholder = createPlaceholder(element, rect);
 
     // Заменяем элемент на placeholder
@@ -570,52 +538,30 @@ export function moveElementToOverlay(
     // Перемещаем элемент в overlay
     overlayContainer.appendChild(element);
 
-    // Получаем computed style ДО любых изменений
-    const computedStyle = getComputedStyle(element);
-    const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-    const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
-
-    // Устанавливаем начальные стили с убиранием только горизонтального padding
+    // Устанавливаем стили для overlay
     element.style.position = 'absolute';
     element.style.top = `${rect.top}px`;
     element.style.left = `${rect.left}px`;
-    element.style.width = `${rect.width}px`; // Используем rect.width как есть
-    element.style.zIndex = '1000';
-    // element.style.padding = '0';
-    // НЕ трогаем paddingTop и paddingBottom - оставляем вертикальные отступы
-    // НЕ трогаем transform - он может содержать scale анимацию
+    element.style.width = `${rect.width}px`;
+    element.style.zIndex = CONTEXT_MENU_CONSTANTS.OVERLAY_Z_INDEX.toString();
 
-    // Проверяем, есть ли уже transition для transform (от scale анимации)
+    // Добавляем transition для позиции
     const currentTransition = element.style.transition;
+    const positionTransition = `top ${CONTEXT_MENU_CONSTANTS.POSITION_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), left ${CONTEXT_MENU_CONSTANTS.POSITION_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+
     if (currentTransition && currentTransition.includes('transform')) {
-        // Если есть transition для transform, добавляем к нему top и left через setProperty
-        element.style.setProperty('transition', `${currentTransition}, top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)`, 'important');
+        element.style.setProperty('transition', `${currentTransition}, ${positionTransition}`, 'important');
     } else {
-        // Иначе устанавливаем только для top и left
-        element.style.setProperty('transition', 'top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
+        element.style.setProperty('transition', positionTransition, 'important');
     }
 
-    // Если есть финальная позиция, анимируем к ней
+    // Анимируем к финальной позиции если нужно
     if (finalPosition) {
-        // Небольшая задержка для плавности
         requestAnimationFrame(() => {
             element.style.top = `${finalPosition.top}px`;
             element.style.left = `${finalPosition.left}px`;
-            // Убираем translateY - элемент должен оставаться в своем размере
         });
-    } else {
-        // Элемент остается на месте без дополнительных трансформаций
-        // Убираем translateY - элемент должен оставаться в своем размере
     }
-
-    console.log('moveElementToOverlay:', {
-        rect: { top: rect.top, left: rect.left, width: rect.width },
-        finalPosition,
-        placeholder,
-        element,
-        currentTransform: element.style.transform,
-        currentTransition: element.style.transition
-    });
 
     return {
         originalParent,
@@ -636,77 +582,36 @@ export function restoreElementToOriginalPosition(
     placeholder: HTMLElement,
     originalRect: DOMRect
 ) {
-    console.log('restoreElementToOriginalPosition START:', {
-        element,
-        originalRect: { top: originalRect.top, left: originalRect.left, width: originalRect.width },
-        placeholder,
-        placeholderParent: placeholder.parentElement,
-        originalParent,
-        originalNextSibling
-    });
-
-    // Получаем computed style для восстановления padding
-    const computedStyle = getComputedStyle(element);
-    const originalPaddingLeft = computedStyle.paddingLeft;
-    const originalPaddingRight = computedStyle.paddingRight;
-
     // Анимируем возврат к оригинальной позиции
-    element.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // Убираем transform из transition!
+    element.style.transition = `top ${CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), left ${CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
     element.style.top = `${originalRect.top}px`;
     element.style.left = `${originalRect.left}px`;
     element.style.width = `${originalRect.width}px`;
-    // Восстанавливаем горизонтальный padding
-    element.style.paddingLeft = originalPaddingLeft;
-    element.style.paddingRight = originalPaddingRight;
-    // Убираем transform - он не нужен при возврате
-
-    console.log('restoreElementToOriginalPosition ANIMATING:', {
-        elementStyles: {
-            top: element.style.top,
-            left: element.style.left,
-            width: element.style.width
-        }
-    });
 
     // Ждем завершения анимации, затем возвращаем элемент
     setTimeout(() => {
-        console.log('restoreElementToOriginalPosition TIMEOUT START:', {
-            placeholderStillInDOM: placeholder.parentElement !== null,
-            placeholderParent: placeholder.parentElement
-        });
-
-        // Возвращаем оригинальные стили БЕЗ transition, чтобы элемент не исчезал
+        // Возвращаем оригинальные стили
         element.style.position = originalStyles.position;
         element.style.top = originalStyles.top;
         element.style.left = originalStyles.left;
         element.style.zIndex = originalStyles.zIndex;
         element.style.transform = originalStyles.transform;
-        element.style.transition = ''; // Убираем transition чтобы не было анимации
-        element.style.width = ''; // Убираем фиксированную ширину
-        element.style.paddingLeft = ''; // Убираем paddingLeft: 0
-        element.style.paddingRight = ''; // Убираем paddingRight: 0
-        element.style.opacity = ''; // Убираем opacity если был установлен
+        element.style.transition = '';
+        element.style.width = '';
+        element.style.opacity = '';
 
         // Возвращаем элемент на место placeholder
         if (placeholder.parentElement) {
-            console.log('restoreElementToOriginalPosition: Replacing placeholder with element');
             placeholder.parentElement.replaceChild(element, placeholder);
-            console.log('restoreElementToOriginalPosition: Element restored, parent:', element.parentElement);
         } else {
-            console.log('restoreElementToOriginalPosition: Placeholder already removed, using fallback');
-            // Если placeholder уже удален, используем originalNextSibling
+            // Fallback если placeholder уже удален
             if (originalNextSibling && originalNextSibling.parentElement) {
-                console.log('restoreElementToOriginalPosition: Inserting before originalNextSibling');
                 originalParent.insertBefore(element, originalNextSibling);
             } else {
-                console.log('restoreElementToOriginalPosition: Appending to originalParent');
                 originalParent.appendChild(element);
             }
-            console.log('restoreElementToOriginalPosition: Element restored (fallback), parent:', element.parentElement);
         }
-
-        console.log('restoreElementToOriginalPosition COMPLETE');
-    }, 300); // Ждем завершения анимации
+    }, CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_TIMEOUT);
 }
 
 /**
@@ -763,13 +668,13 @@ export function getScrollableContainers(element: HTMLElement): HTMLElement[] {
 /**
  * Расчет размеров контекстного меню
  */
-export function calculateMenuDimensions(actionsCount: number, maxHeightVH: number = 60): {
+export function calculateMenuDimensions(actionsCount: number, maxHeightVH: number = CONTEXT_MENU_CONSTANTS.MENU_MAX_HEIGHT_VH): {
     height: number;
     itemHeight: number;
     padding: number;
 } {
-    const itemHeight = 52; // высота одного пункта меню
-    const padding = 32; // отступы сверху и снизу
+    const itemHeight = CONTEXT_MENU_CONSTANTS.MENU_ITEM_HEIGHT;
+    const padding = CONTEXT_MENU_CONSTANTS.MENU_PADDING;
     const maxHeight = (maxHeightVH * window.innerHeight) / 100;
 
     const totalHeight = Math.min(
@@ -785,261 +690,118 @@ export function calculateMenuDimensions(actionsCount: number, maxHeightVH: numbe
 }
 
 /**
- * Расчет позиции меню относительно элемента с учетом выравнивания
+ * Расчет позиции меню с учетом выравнивания
  */
-export function calculateMenuPositionRelativeToElement(
+export function calculateMenuPosition(
     elementRect: DOMRect,
-    menuWidth: number = 250,
-    alignment: 'left' | 'right' | 'center' = 'right'
-): {
-    left: number;
-    bottom: number;
-} {
-    const viewport = getViewportRect();
-    const safeArea = getSafeArea();
-
-    let menuLeft: number;
-
-    // Вычисляем позицию в зависимости от выравнивания
-    switch (alignment) {
-        case 'left':
-            // Выравниваем меню по левому краю элемента
-            menuLeft = elementRect.left;
-            break;
-        case 'center':
-            // Центрируем меню относительно элемента
-            menuLeft = elementRect.left + (elementRect.width - menuWidth) / 2;
-            break;
-        case 'right':
-        default:
-            // Выравниваем меню по правому краю элемента (по умолчанию)
-            menuLeft = elementRect.right - menuWidth;
-            break;
-    }
-
-    // Проверяем, чтобы меню не выходило за левый край экрана
-    if (menuLeft < safeArea.left + 16) {
-        menuLeft = safeArea.left + 16;
-    }
-
-    // Проверяем, чтобы меню не выходило за правый край экрана
-    if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
-        menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
-    }
-
-    // Вычисляем позицию меню снизу экрана (для случая когда нужно перемещать элемент)
-    const menuBottom = safeArea.bottom + 16;
-
-    console.log('calculateMenuPositionRelativeToElement:', {
-        alignment,
-        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width },
-        menuWidth,
-        menuLeft,
-        menuBottom
-    });
-
-    return {
-        left: menuLeft,
-        bottom: menuBottom
-    };
-}
-
-/**
- * Расчет позиции меню под элементом с учетом выравнивания
- */
-export function calculateMenuPositionUnderElement(
-    elementRect: DOMRect,
-    menuWidth: number = 250,
+    menuWidth: number = CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
     alignment: 'left' | 'right' | 'center' = 'right',
-    edgeMargin: number = 12
+    position: 'under' | 'bottom' = 'under',
+    edgeMargin: number = CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN,
+    menuHeight?: number
 ): {
     left: number;
-    top: number;
+    top?: number;
+    bottom?: number;
 } {
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
 
+    // Вычисляем позицию по X в зависимости от выравнивания
     let menuLeft: number;
-
-    // Вычисляем позицию в зависимости от выравнивания
     switch (alignment) {
         case 'left':
-            // Выравниваем меню по левому краю элемента
             menuLeft = elementRect.left;
             break;
         case 'center':
-            // Центрируем меню относительно элемента
             menuLeft = elementRect.left + (elementRect.width - menuWidth) / 2;
             break;
         case 'right':
         default:
-            // Выравниваем меню по правому краю элемента (по умолчанию)
             menuLeft = elementRect.right - menuWidth;
             break;
     }
 
-    // Проверяем, чтобы меню не выходило за левый край экрана
-    if (menuLeft < safeArea.left + 16) {
-        menuLeft = safeArea.left + 16;
+    // Проверяем границы экрана
+    const minLeft = safeArea.left + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN;
+    const maxLeft = viewport.w - safeArea.right - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuWidth;
+    menuLeft = Math.max(minLeft, Math.min(menuLeft, maxLeft));
+
+    // Вычисляем позицию по Y
+    if (position === 'under') {
+        // Проверяем, помещается ли меню под элементом
+        const menuTop = elementRect.bottom + edgeMargin;
+        const availableHeight = viewport.h - menuTop - safeArea.bottom;
+        const requiredHeight = menuHeight || CONTEXT_MENU_CONSTANTS.MIN_MENU_HEIGHT;
+
+        console.log('calculateMenuPosition UNDER check:', {
+            menuTop,
+            availableHeight,
+            requiredHeight,
+            fits: availableHeight >= requiredHeight
+        });
+
+        // Если меню не помещается под элементом, позиционируем снизу экрана
+        if (availableHeight < requiredHeight) {
+            console.log('Menu does not fit under element, positioning at bottom');
+            return {
+                left: menuLeft,
+                bottom: safeArea.bottom + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN
+            };
+        }
+
+        console.log('Menu fits under element, positioning under');
+        return {
+            left: menuLeft,
+            top: menuTop
+        };
+    } else {
+        return {
+            left: menuLeft,
+            bottom: safeArea.bottom + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN
+        };
     }
-
-    // Проверяем, чтобы меню не выходило за правый край экрана
-    if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
-        menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
-    }
-
-    // Позиционируем меню под элементом
-    const menuTop = elementRect.bottom + edgeMargin;
-
-    console.log('calculateMenuPositionUnderElement:', {
-        alignment,
-        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width },
-        menuWidth,
-        menuLeft,
-        menuTop,
-        edgeMargin
-    });
-
-    return {
-        left: menuLeft,
-        top: menuTop
-    };
 }
 
-/**
- * Расчет финальной позиции элемента (как в Telegram)
- */
-export function calculateElementFinalPosition(
-    elementRect: DOMRect,
-    menuHeight: number,
-    menuLeft: number,
-    edgeMargin: number = 12
-): {
-    finalTop: number;
-    finalLeft: number;
-    needsScroll: boolean;
-    scrollOffset: number;
-} {
-    const viewport = getViewportRect();
-    const safeArea = getSafeArea();
-
-    // Вычисляем позицию меню (снизу экрана)
-    const menuTop = viewport.h - menuHeight - safeArea.bottom - 16; // 16px отступ от низа
-
-    // Вычисляем финальную позицию элемента (над меню с отступом)
-    const elementHeight = elementRect.height;
-    const finalTop = menuTop - elementHeight - edgeMargin;
-    const finalLeft = elementRect.left;
-
-    // Проверяем, помещается ли элемент в видимую область
-    const elementTop = finalTop;
-
-    // Если элемент выходит за верх экрана, нужно скроллить
-    const needsScroll = elementTop < safeArea.top;
-    const scrollOffset = needsScroll ? safeArea.top - elementTop : 0;
-
-    return {
-        finalTop: finalTop + scrollOffset,
-        finalLeft,
-        needsScroll,
-        scrollOffset
-    };
-}
-
-/**
- * Проверка, помещается ли элемент и меню в видимую область
- */
 /**
  * Проверяет, нужно ли перемещать элемент или можно оставить на месте
  */
 export function shouldMoveElement(
     elementRect: DOMRect,
     menuHeight: number,
-    edgeMargin: number = 12
-): {
-    shouldMove: boolean;
-    reason: 'fits' | 'too_high' | 'too_large' | 'viewport_overflow' | 'upper_overflow';
-} {
+    edgeMargin: number = CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN
+): boolean {
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
 
-    // Вычисляем позицию меню снизу экрана
-    const menuTop = viewport.h - menuHeight - safeArea.bottom - 16;
+    // Проверяем, помещается ли меню под элементом с запасом
+    const menuTop = elementRect.bottom + edgeMargin;
+    const availableHeight = viewport.h - menuTop - safeArea.bottom;
+    const menuFitsBelow = availableHeight >= menuHeight + CONTEXT_MENU_CONSTANTS.MENU_HEIGHT_BUFFER;
 
-    // Вычисляем, где будет нижняя граница элемента, если оставить его на месте
-    const elementBottomAtCurrentPosition = elementRect.bottom;
-
-    // Вычисляем, где будет верхняя граница элемента, если оставить его на месте
-    const elementTopAtCurrentPosition = elementRect.top;
-
-    // Проверяем, помещается ли меню под элементом
-    const menuFitsBelow = elementBottomAtCurrentPosition + edgeMargin + menuHeight <= viewport.h - safeArea.bottom - 16;
-
-    // Проверяем, не выходит ли элемент за верх экрана
-    const elementFitsInViewport = elementTopAtCurrentPosition >= safeArea.top;
-
-    // Проверяем, не слишком ли большой элемент (высота элемента + меню > высота экрана)
+    // Проверяем, не слишком ли большой элемент
     const totalHeight = elementRect.height + menuHeight + edgeMargin;
-    const viewportHeight = viewport.h - safeArea.top - safeArea.bottom - 32; // 32px отступы
+    const viewportHeight = viewport.h - safeArea.top - safeArea.bottom - CONTEXT_MENU_CONSTANTS.VIEWPORT_MARGIN;
     const isTooLarge = totalHeight > viewportHeight;
 
-    // Дополнительная проверка: если элемент в верхней части экрана и меню не помещается под ним
-    const isInUpperHalf = elementTopAtCurrentPosition < viewport.h / 2;
-    const menuWouldOverflow = elementBottomAtCurrentPosition + edgeMargin + menuHeight > viewport.h - safeArea.bottom - 16;
+    // Проверяем, не выходит ли элемент за верх экрана
+    const elementFitsInViewport = elementRect.top >= safeArea.top;
 
-    console.log('SHOULD_MOVE_ELEMENT:', {
-        elementRect: {
-            top: elementRect.top,
-            bottom: elementRect.bottom,
-            height: elementRect.height
-        },
+    const result = isTooLarge || !elementFitsInViewport || !menuFitsBelow;
+
+    console.log('shouldMoveElement debug:', {
+        elementRect: { bottom: elementRect.bottom, height: elementRect.height, top: elementRect.top },
         menuHeight,
-        viewport: { h: viewport.h },
-        safeArea,
+        edgeMargin,
         menuTop,
+        availableHeight,
         menuFitsBelow,
-        elementFitsInViewport,
-        isTooLarge,
         totalHeight,
         viewportHeight,
-        isInUpperHalf,
-        menuWouldOverflow
+        isTooLarge,
+        elementFitsInViewport,
+        result
     });
 
-    // Если элемент слишком большой для экрана - перемещаем
-    if (isTooLarge) {
-        return { shouldMove: true, reason: 'too_large' };
-    }
-
-    // Если элемент не помещается в viewport (выходит за верх) - перемещаем
-    if (!elementFitsInViewport) {
-        return { shouldMove: true, reason: 'viewport_overflow' };
-    }
-
-    // Только если меню действительно не помещается под элементом - перемещаем
-    // Добавляем буфер в 50px для более консервативного подхода
-    if (elementBottomAtCurrentPosition + edgeMargin + menuHeight + 50 > viewport.h - safeArea.bottom - 16) {
-        return { shouldMove: true, reason: 'too_high' };
-    }
-
-    // Иначе - оставляем на месте
-    return { shouldMove: false, reason: 'fits' };
-}
-
-export function checkElementAndMenuFit(
-    elementRect: DOMRect,
-    menuHeight: number,
-    edgeMargin: number = 12
-): {
-    fits: boolean;
-    needsScroll: boolean;
-    scrollOffset: number;
-} {
-    const position = calculateElementFinalPosition(elementRect, menuHeight, edgeMargin);
-
-    return {
-        fits: !position.needsScroll,
-        needsScroll: position.needsScroll,
-        scrollOffset: position.scrollOffset
-    };
+    return result;
 }

@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import classNames from 'classnames';
 import { ContextMenuAction } from '../types';
-import { trapFocus, triggerHaptic, HapticType } from '../utils';
+import { trapFocus } from '../utils';
 import styles from './styles.module.scss';
 
 interface ContextMenuPanelProps {
@@ -84,11 +84,11 @@ export function ContextMenuPanel({
             transition={{
                 duration: 0.4,
                 ease: [0.25, 0.46, 0.45, 0.94], // Более плавная кривая как в Telegram
-                scale: { 
+                scale: {
                     duration: 0.5,
                     ease: [0.25, 0.46, 0.45, 0.94]
                 },
-                opacity: { 
+                opacity: {
                     duration: 0.3,
                     ease: [0.25, 0.46, 0.45, 0.94]
                 }
@@ -115,8 +115,7 @@ export function ContextMenuPanel({
                     <button
                         key={action.id}
                         onClick={() => {
-                            // Хаптик при выборе действия
-                            triggerHaptic(action.destructive ? HapticType.WARNING : HapticType.SELECTION);
+                            // Убираем хаптик при выборе действия - он нужен только при долгом нажатии
                             onActionSelect(action);
                         }}
                         className={classNames(styles.actionButton, {

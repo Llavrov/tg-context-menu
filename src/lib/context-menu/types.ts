@@ -12,13 +12,10 @@ export type ContextMenuAction = {
 export type MenuAlignment = 'left' | 'right' | 'center';
 
 export type OpenContextMenuConfig = {
-    title?: string;               // заголовок для emoji-bar
-    emojis?: string[];            // эмодзи в верхнем баре
     actions: ContextMenuAction[]; // пункты меню
     longPressMs?: number;         // default 450
     edgeMargin?: number;          // отступ между элементом и меню, default 12
     maxMenuHeightVH?: number;     // например 60 (vh)
-    scrollContainer?: HTMLElement | 'window'; // где скроллить, default 'window'
     menuAlignment?: MenuAlignment; // выравнивание меню по оси X, default 'right'
 };
 
@@ -37,7 +34,6 @@ export type OverlayState = {
         zIndex: string;
         transform: string;
     };
-    animationPhase: 'initial' | 'positioning' | 'stable' | 'closing';
     config: OpenContextMenuConfig | null;
 };
 
