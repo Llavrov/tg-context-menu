@@ -19,11 +19,11 @@ import {
     calculateMenuDimensions,
     checkElementAndMenuFit,
     calculateElementFinalPosition,
-    calculateMenuPositionRelativeToElement,
     shouldMoveElement,
+    getViewportRect,
+    getSafeArea,
     triggerHaptic,
-    HapticType,
-    isHapticSupported
+    HapticType
 } from './utils';
 import { OverlayContainer } from './components/overlay-container';
 
@@ -89,12 +89,28 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
 
             let result;
             if (moveCheck.shouldMove) {
-                // Если нужно перемещать - используем старую логику
-                const menuPos = calculateMenuPositionRelativeToElement(rect, 250);
+                // Если нужно перемещать - вычисляем финальную позицию
+                const viewport = getViewportRect();
+                const safeArea = getSafeArea();
+                const menuWidth = 250;
+                
+                // Выравниваем меню по правому краю элемента
+                const elementRight = rect.right;
+                let menuLeft = elementRight - menuWidth;
+                
+                // Проверяем границы экрана
+                if (menuLeft < safeArea.left + 16) {
+                    menuLeft = safeArea.left + 16;
+                }
+                
+                if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
+                    menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
+                }
+                
                 const finalPosition = calculateElementFinalPosition(
                     rect,
                     menuDimensions.height,
-                    menuPos.left,
+                    menuLeft,
                     state.config.edgeMargin || 12
                 );
 
@@ -209,12 +225,52 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         // Вычисляем позицию меню
         let menuPos;
         if (moveCheck.shouldMove) {
-            // Если нужно перемещать - используем старую логику
-            menuPos = calculateMenuPositionRelativeToElement(rect, 250);
+            // Если нужно перемещать - меню снизу экрана
+            const viewport = getViewportRect();
+            const safeArea = getSafeArea();
+            const menuWidth = 250;
+            
+            // Выравниваем меню по правому краю элемента
+            const elementRight = rect.right;
+            let menuLeft = elementRight - menuWidth;
+            
+            // Проверяем, чтобы меню не выходило за левый край экрана
+            if (menuLeft < safeArea.left + 16) {
+                menuLeft = safeArea.left + 16;
+            }
+            
+            // Проверяем, чтобы меню не выходило за правый край экрана
+            if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
+                menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
+            }
+            
+            // Позиция меню снизу экрана
+            const menuBottom = safeArea.bottom + 16;
+            const menuTop = viewport.h - menuBottom;
+            
+            menuPos = {
+                left: menuLeft,
+                top: menuTop
+            };
         } else {
             // Если не нужно перемещать - меню под элементом
+            const menuWidth = 250;
+            let menuLeft = rect.left + (rect.width - menuWidth) / 2; // Центрируем под элементом
+            
+            // Проверяем границы экрана
+            const viewport = getViewportRect();
+            const safeArea = getSafeArea();
+            
+            if (menuLeft < safeArea.left + 16) {
+                menuLeft = safeArea.left + 16;
+            }
+            
+            if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
+                menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
+            }
+            
             menuPos = {
-                left: rect.left + (rect.width - 250) / 2, // Центрируем под элементом
+                left: menuLeft,
                 top: rect.bottom + 12 // 12px отступ от элемента
             };
         }
