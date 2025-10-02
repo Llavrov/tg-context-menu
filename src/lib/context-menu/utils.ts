@@ -718,14 +718,55 @@ export function calculateMenuPosition(
             break;
         case 'right':
         default:
+            // Для правого выравнивания: правый край меню = правый край элемента
             menuLeft = elementRect.right - menuWidth;
             break;
     }
 
+    console.log('Alignment calculation:', {
+        alignment,
+        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width },
+        menuWidth,
+        calculatedLeft: menuLeft,
+        expectedRight: elementRect.right,
+        actualRight: menuLeft + menuWidth
+    });
+
     // Проверяем границы экрана
     const minLeft = safeArea.left + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN;
     const maxLeft = viewport.w - safeArea.right - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuWidth;
+    const originalMenuLeft = menuLeft;
     menuLeft = Math.max(minLeft, Math.min(menuLeft, maxLeft));
+
+    console.log('Menu alignment debug:', {
+        alignment,
+        elementRect: {
+            left: elementRect.left,
+            right: elementRect.right,
+            width: elementRect.width,
+            top: elementRect.top,
+            bottom: elementRect.bottom,
+            height: elementRect.height
+        },
+        menuWidth,
+        originalMenuLeft,
+        finalMenuLeft: menuLeft,
+        adjusted: originalMenuLeft !== menuLeft,
+        elementRight: elementRect.right,
+        menuRight: menuLeft + menuWidth,
+        alignmentCheck: {
+            elementRight: elementRect.right,
+            menuRight: menuLeft + menuWidth,
+            isAligned: Math.abs(elementRect.right - (menuLeft + menuWidth)) < 1,
+            difference: elementRect.right - (menuLeft + menuWidth)
+        },
+        calculation: {
+            elementRight: elementRect.right,
+            menuWidth: menuWidth,
+            calculatedLeft: elementRect.right - menuWidth,
+            finalLeft: menuLeft
+        }
+    });
 
     // Вычисляем позицию по Y
     if (position === 'under') {
@@ -756,9 +797,14 @@ export function calculateMenuPosition(
             top: menuTop
         };
     } else {
+        // Для позиции 'bottom' также используем правильное позиционирование
+        const bottomPosition = Math.max(
+            safeArea.bottom + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN,
+            viewport.h - (menuHeight || CONTEXT_MENU_CONSTANTS.MIN_MENU_HEIGHT) - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN
+        );
         return {
             left: menuLeft,
-            bottom: safeArea.bottom + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN
+            bottom: bottomPosition
         };
     }
 }

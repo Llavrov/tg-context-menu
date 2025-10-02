@@ -226,7 +226,7 @@ export default function Demo() {
                 </div>
 
                 {/* Сообщения */}
-                <div className="bg-gray-50 min-h-96 max-h-[600px] overflow-y-auto">
+                <div className="bg-gray-50 min-h-96 max-h-[800px] overflow-y-auto">
                     {sampleMessages.map((message) => (
                         <ChatMessage key={message.id} message={message} />
                     ))}
@@ -243,45 +243,6 @@ export default function Demo() {
                         <button className="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 transition-colors">
                             Отправить
                         </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Инструкции */}
-            <div className="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Как использовать:
-                </h3>
-                <div className="space-y-3 text-gray-600">
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">📱</span>
-                        <div>
-                            <strong>На мобильном:</strong> Долгое нажатие на любое сообщение
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">🖱️</span>
-                        <div>
-                            <strong>На десктопе:</strong> Правый клик на сообщение
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">⌨️</span>
-                        <div>
-                            <strong>Клавиатура:</strong> Нажмите Escape для закрытия меню
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">✨</span>
-                        <div>
-                            <strong>Особенности:</strong> Вибрация, блюр фона, анимации, автоскролл, эмодзи-бар
-                        </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                        <span className="text-2xl">🎯</span>
-                        <div>
-                            <strong>Без клонирования:</strong> Оригинальный элемент поднимается и остается в потоке
-                        </div>
                     </div>
                 </div>
             </div>

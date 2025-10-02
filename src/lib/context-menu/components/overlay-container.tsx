@@ -14,6 +14,18 @@ interface OverlayContainerProps {
 
 export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps>(
     ({ state, onClose, onActionSelect }, ref) => {
+        // Debug log для позиций меню
+        if (state.isOpen && state.menuPosition) {
+            console.log('OverlayContainer Menu Animation:', {
+                initialPosition: state.menuPosition,
+                finalPosition: state.finalMenuPosition,
+                shouldAnimate: state.finalMenuPosition !== null,
+                initialTop: (state.menuPosition as MenuPosition).top,
+                initialBottom: (state.menuPosition as MenuPosition).bottom,
+                finalTop: state.finalMenuPosition?.top,
+                finalBottom: state.finalMenuPosition?.bottom,
+            });
+        }
 
         return (
             <AnimatePresence>
@@ -39,20 +51,41 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                         {/* Оригинальный элемент уже перемещен в этот контейнер */}
                         {/* Он будет отрендерен как дочерний элемент overlayRef.current */}
 
-                        {/* Контекстное меню */}
+                        {/* Контекстное меню с анимацией позиции */}
                         {state.menuPosition && (
-                            <ContextMenuPanel
-                                actions={state.config.actions}
-                                position={{
-                                    left: Number(state.menuPosition.left),
-                                    top: (state.menuPosition as MenuPosition).top || undefined,
-                                    bottom: (state.menuPosition as MenuPosition).bottom || undefined,
-                                    width: 250
+                            <motion.div
+                                initial={{
+                                    left: `${state.menuPosition.left}px`,
+                                    top: `${(state.menuPosition as MenuPosition).top}px`, // Всегда используем top
                                 }}
-                                maxHeightVH={state.config.maxMenuHeightVH || 60}
-                                onActionSelect={onActionSelect}
-                                onClose={onClose}
-                            />
+                                animate={state.finalMenuPosition ? {
+                                    left: `${state.finalMenuPosition.left}px`,
+                                    top: `${state.finalMenuPosition.top}px`, // Всегда используем top
+                                } : {
+                                    left: `${state.menuPosition.left}px`,
+                                    top: `${(state.menuPosition as MenuPosition).top}px`, // Всегда используем top
+                                }}
+                                transition={{
+                                    duration: 0.4, // Синхронизируем с POSITION_ANIMATION_DURATION (400ms)
+                                    ease: [0.4, 0, 0.2, 1] // Синхронизируем с cubic-bezier элемента
+                                }}
+                                style={{
+                                    position: 'absolute',
+                                    zIndex: 1002
+                                }}
+                            >
+                                <ContextMenuPanel
+                                    actions={state.config.actions}
+                                    position={{
+                                        left: 0,
+                                        top: 0,
+                                        width: 250
+                                    }}
+                                    maxHeightVH={state.config.maxMenuHeightVH || 60}
+                                    onActionSelect={onActionSelect}
+                                    onClose={onClose}
+                                />
+                            </motion.div>
                         )}
                     </div>
                 )}

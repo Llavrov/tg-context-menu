@@ -25,6 +25,7 @@ export type OverlayState = {
     placeholderElement: HTMLElement | null;
     originalPosition: DOMRect | null;
     menuPosition: MenuPosition | null;
+    finalMenuPosition: MenuPosition | null; // Финальная позиция меню (если нужно анимировать)
     originalParent: HTMLElement | null;
     originalNextSibling: Node | null;
     originalStyles: {

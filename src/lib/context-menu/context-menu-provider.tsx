@@ -35,6 +35,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         placeholderElement: null,
         originalPosition: null,
         menuPosition: null,
+        finalMenuPosition: null,
         originalParent: null,
         originalNextSibling: null,
         originalStyles: {
@@ -64,61 +65,33 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             const element = state.originalElement;
             const rect = state.originalPosition!;
 
-            const menuDimensions = calculateMenuDimensions(
-                state.config.actions.length,
-                state.config.maxMenuHeightVH || CONTEXT_MENU_CONSTANTS.MENU_MAX_HEIGHT_VH
-            );
+            // Вычисляем финальную позицию элемента, если нужно перемещать
+            let finalPosition = null;
+            if (state.finalMenuPosition) {
+                // Если есть финальная позиция меню, значит элемент должен перемещаться
+                const menuDimensions = calculateMenuDimensions(
+                    state.config.actions.length,
+                    state.config.maxMenuHeightVH || CONTEXT_MENU_CONSTANTS.MENU_MAX_HEIGHT_VH
+                );
 
-            const moveCheck = shouldMoveElement(
-                rect,
-                menuDimensions.height,
-                state.config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN
-            );
-
-
-            let result;
-            if (moveCheck) {
-                // Когда нужно перемещать элемент, вычисляем финальную позицию
+                // Вычисляем позицию элемента так, чтобы меню поместилось снизу
                 const viewport = getViewportRect();
                 const safeArea = getSafeArea();
-                const menuHeight = menuDimensions.height;
-                const menuWidth = CONTEXT_MENU_CONSTANTS.MENU_WIDTH;
+                const elementFinalTop = viewport.h - safeArea.bottom - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuDimensions.height - CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN - rect.height;
 
-                // Позиционируем элемент так, чтобы меню поместилось снизу экрана
-                // Меню будет на bottom: 16, значит его top = viewport.h - 16 - menuHeight
-                const menuTop = viewport.h - safeArea.bottom - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuHeight;
-                const finalPosition = {
-                    top: menuTop - CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN - rect.height,
+                finalPosition = {
                     left: rect.left,
-                    width: rect.width,
-                    height: rect.height
+                    top: elementFinalTop
                 };
-
-                console.log('Position calculations:', {
-                    viewportHeight: viewport.h,
-                    safeAreaBottom: safeArea.bottom,
-                    screenMargin: CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN,
-                    menuHeight,
-                    menuTop,
-                    elementMargin: CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN,
-                    elementHeight: rect.height,
-                    finalTop: finalPosition.top
-                });
-                console.log('Moving element to final position:', finalPosition);
-
-                result = moveElementToOverlay(
-                    element,
-                    overlayRef.current,
-                    rect,
-                    finalPosition
-                );
-            } else {
-                result = moveElementToOverlay(
-                    element,
-                    overlayRef.current,
-                    rect
-                );
             }
+
+            const result = moveElementToOverlay(
+                element,
+                overlayRef.current,
+                rect,
+                finalPosition
+            );
+
             placeholderRef.current = result.placeholder;
 
             setState(prev => ({
@@ -129,7 +102,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 originalStyles: result.originalStyles
             }));
         }
-    }, [state.isOpen, state.originalElement, state.originalPosition, state.config]);
+    }, [state.isOpen, state.originalElement, state.originalPosition, state.config, state.finalMenuPosition]);
 
     useEffect(() => {
         if (state.isOpen) {
@@ -183,39 +156,69 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             transform: element.style.transform || 'none',
         };
 
-        // Вычисляем позицию меню
-        console.log('Menu positioning debug:', {
-            shouldMove,
-            rect: { bottom: rect.bottom, height: rect.height },
-            menuHeight: menuDimensions.height,
-            viewport: { h: window.innerHeight },
-            safeArea: { bottom: 0 } // Упрощенно для отладки
-        });
-
-        const menuPos = {
-            ...calculateMenuPosition(
+        // ВСЕГДА начинаем с позиции под элементом (принудительно, даже если не помещается)
+        const initialMenuPos = {
+            left: calculateMenuPosition(
                 rect,
                 CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
                 config.menuAlignment || 'right',
-                shouldMove ? 'bottom' : 'under',
+                'under', // Принудительно под элементом
                 config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN,
-                menuDimensions.height
-            ),
+                0 // Игнорируем высоту меню для начальной позиции
+            ).left,
+            top: rect.bottom + (config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN), // Принудительно под элементом
             width: CONTEXT_MENU_CONSTANTS.MENU_WIDTH
         };
 
-        console.log('Final menu position:', menuPos);
+        // Если нужно перемещать, вычисляем финальную позицию
+        let finalMenuPos = null;
+        if (shouldMove) {
+            // Вычисляем позицию снизу экрана, но используем top вместо bottom
+            const viewport = getViewportRect();
+            const safeArea = getSafeArea();
+            const finalTop = viewport.h - safeArea.bottom - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuDimensions.height;
+
+            finalMenuPos = {
+                left: calculateMenuPosition(
+                    rect, // Используем оригинальную позицию элемента для выравнивания по X
+                    CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
+                    config.menuAlignment || 'right',
+                    'bottom', // Для вычисления left
+                    config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN,
+                    menuDimensions.height
+                ).left,
+                top: finalTop, // Используем top вместо bottom для анимации
+                width: CONTEXT_MENU_CONSTANTS.MENU_WIDTH
+            };
+        }
+
+        console.log('Menu positions:', {
+            initial: initialMenuPos,
+            final: finalMenuPos,
+            shouldMove,
+            elementRect: { left: rect.left, right: rect.right, width: rect.width },
+            alignment: config.menuAlignment || 'right',
+            menuWidth: CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
+            alignmentCheck: {
+                elementRight: rect.right,
+                initialMenuRight: initialMenuPos.left + initialMenuPos.width,
+                finalMenuRight: finalMenuPos ? finalMenuPos.left + finalMenuPos.width : null,
+                isInitialAligned: Math.abs(rect.right - (initialMenuPos.left + initialMenuPos.width)) < 1,
+                isFinalAligned: finalMenuPos ? Math.abs(rect.right - (finalMenuPos.left + finalMenuPos.width)) < 1 : null
+            }
+        });
 
         setState({
             isOpen: true,
             originalElement: element,
             originalPosition: rect,
-            menuPosition: menuPos,
+            menuPosition: initialMenuPos, // Начинаем с позиции под элементом
             originalParent,
             originalNextSibling,
             originalStyles,
             placeholderElement: null,
             config,
+            finalMenuPosition: finalMenuPos, // Финальная позиция (если нужно)
         });
     }, []);
 
@@ -251,6 +254,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 placeholderElement: null,
                 originalPosition: null,
                 menuPosition: null,
+                finalMenuPosition: null,
                 originalParent: null,
                 originalNextSibling: null,
                 originalStyles: {

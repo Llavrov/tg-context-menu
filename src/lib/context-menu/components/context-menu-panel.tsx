@@ -95,9 +95,6 @@ export function ContextMenuPanel({
             }}
             className={styles.panel}
             style={{
-                left: position.left,
-                top: position.top,
-                bottom: position.bottom,
                 width: position.width,
                 maxHeight: `${maxHeightVH}vh`,
                 transformOrigin: 'center top', // Меню растет из центра и верха
