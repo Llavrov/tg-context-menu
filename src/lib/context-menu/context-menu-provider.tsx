@@ -440,6 +440,11 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
     const longPress = useCallback((config: OpenContextMenuConfig) => {
         return {
             onPointerDown: (e: React.PointerEvent) => {
+                // Если меню уже открыто, не обрабатываем долгое нажатие
+                if (state.isOpen) {
+                    console.log('longPress: Menu already open, ignoring pointer down');
+                    return;
+                }
                 const element = e.currentTarget as HTMLElement;
                 const controller = createLongPressController(() => {
                     open(element, config);
@@ -469,6 +474,11 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 }
             },
             onClick: (e: React.MouseEvent) => {
+                // Если меню уже открыто, не обрабатываем клик
+                if (state.isOpen) {
+                    console.log('longPress: Menu already open, ignoring click');
+                    return;
+                }
                 if (longPressControllerRef.current) {
                     longPressControllerRef.current.onClick(e);
                 }
@@ -479,7 +489,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 open(element, config);
             },
         };
-    }, [open]);
+    }, [open, state.isOpen]);
 
     const handleActionSelect = useCallback((action: ContextMenuAction) => {
         action.onSelect();

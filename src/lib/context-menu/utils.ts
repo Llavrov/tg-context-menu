@@ -30,7 +30,58 @@ const HAPTIC_PATTERNS = {
  * Хаптическая обратная связь
  */
 export function triggerHaptic(type: HapticType | number | number[] = HapticType.MEDIUM): void {
-    if (typeof window === 'undefined' || !navigator.vibrate) {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    // Сначала пробуем Telegram WebApp API
+    try {
+        // Используем глобальный объект Telegram.WebApp
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (typeof (window as any).Telegram !== 'undefined' &&
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).Telegram.WebApp &&
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).Telegram.WebApp.HapticFeedback) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const tg = (window as any).Telegram.WebApp;
+
+            // Используем Telegram WebApp хаптик
+            switch (type) {
+                case HapticType.LIGHT:
+                    tg.HapticFeedback.impactOccurred('light');
+                    break;
+                case HapticType.MEDIUM:
+                    tg.HapticFeedback.impactOccurred('medium');
+                    break;
+                case HapticType.HEAVY:
+                    tg.HapticFeedback.impactOccurred('heavy');
+                    break;
+                case HapticType.SUCCESS:
+                    tg.HapticFeedback.notificationOccurred('success');
+                    break;
+                case HapticType.WARNING:
+                    tg.HapticFeedback.notificationOccurred('warning');
+                    break;
+                case HapticType.ERROR:
+                    tg.HapticFeedback.notificationOccurred('error');
+                    break;
+                case HapticType.SELECTION:
+                    tg.HapticFeedback.selectionChanged();
+                    break;
+                default:
+                    tg.HapticFeedback.impactOccurred('medium');
+                    break;
+            }
+            console.log('Telegram WebApp haptic triggered:', type);
+            return;
+        }
+    } catch (error) {
+        console.warn('Telegram WebApp haptic failed:', error);
+    }
+
+    // Fallback на стандартный navigator.vibrate
+    if (!navigator.vibrate) {
         return;
     }
 
@@ -46,8 +97,9 @@ export function triggerHaptic(type: HapticType | number | number[] = HapticType.
 
     try {
         navigator.vibrate(pattern);
+        console.log('Standard haptic triggered:', type);
     } catch (error) {
-        console.warn('Haptic feedback failed:', error);
+        console.warn('Standard haptic feedback failed:', error);
     }
 }
 
@@ -55,7 +107,26 @@ export function triggerHaptic(type: HapticType | number | number[] = HapticType.
  * Проверка поддержки хаптика
  */
 export function isHapticSupported(): boolean {
-    return typeof window !== 'undefined' && 'vibrate' in navigator;
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    // Проверяем Telegram WebApp API
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (typeof (window as any).Telegram !== 'undefined' &&
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).Telegram.WebApp &&
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (window as any).Telegram.WebApp.HapticFeedback) {
+            return true;
+        }
+    } catch {
+        // Игнорируем ошибки
+    }
+
+    // Fallback на стандартный API
+    return 'vibrate' in navigator;
 }
 
 /**
@@ -189,42 +260,27 @@ export function createLongPressController(
                 if (currentElement) {
                     currentElement.style.transform = '';
                     currentElement.style.transition = '';
+                    currentElement.style.transformOrigin = ''; // Очищаем transform-origin
                 }
-            }, 250); // Ждем завершения анимации
+            }, 700); // Ждем завершения анимации (0.7s)
             currentElement = null;
         }
     };
 
     const applyScaleAnimation = (element: HTMLElement) => {
-        element.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        element.style.transform = 'scale(0.95)';
+        // Устанавливаем центр анимации в центр элемента
+        element.style.transformOrigin = 'center';
+        element.style.transition = 'transform .7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        element.style.transform = 'scale(0.8)';
     };
 
     const removeScaleAnimation = (element: HTMLElement) => {
-        element.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        // Устанавливаем центр анимации в центр элемента
+        element.style.transformOrigin = 'center';
+        element.style.transition = 'transform .7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         element.style.transform = 'scale(1)';
     };
 
-    const applyTapAnimation = (element: HTMLElement) => {
-        console.log('applyTapAnimation: Applying tap animation', element);
-        // Анимация при тапе: scale(0.95) -> scale(1) как в Telegram
-        element.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        element.style.transform = 'scale(0.95)';
-
-        // Хаптик при тапе
-        triggerHaptic(HapticType.SELECTION);
-
-        // Возвращаем к нормальному размеру
-        requestAnimationFrame(() => {
-            element.style.transform = 'scale(1)';
-
-            // Очищаем стили после анимации
-            setTimeout(() => {
-                element.style.transform = '';
-                element.style.transition = '';
-            }, 200);
-        });
-    };
 
     const onPointerDown = (e: React.PointerEvent) => {
         // Игнорируем правую кнопку мыши
@@ -287,10 +343,9 @@ export function createLongPressController(
 
     const onClick = (e: React.MouseEvent) => {
         console.log('createLongPressController: onClick triggered', e.currentTarget, 'wasLongPress:', wasLongPress);
-        // Анимация при обычном клике (не долгое нажатие)
+        // Убираем анимацию при обычном клике - только хаптик
         if (!wasLongPress) {
-            const target = e.currentTarget as HTMLElement;
-            applyTapAnimation(target);
+            triggerHaptic(HapticType.SELECTION);
         }
     };
 
