@@ -238,7 +238,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             safeArea: getSafeArea(),
             menuDimensions
         });
-        
+
         let menuPos;
         if (moveCheck.shouldMove) {
             // Если нужно перемещать - меню снизу экрана
@@ -268,7 +268,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 left: Number(menuLeft),
                 bottom: menuBottom
             } as MenuPosition;
-            
+
             console.log('OPEN: Menu position (should move)', {
                 menuPos,
                 elementRight,
@@ -282,7 +282,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             const menuWidth = 250;
             const viewport = getViewportRect();
             const safeArea = getSafeArea();
-            
+
             // Выравниваем меню по правому краю элемента (как в Telegram)
             const elementRight = rect.right;
             let menuLeft = elementRight - menuWidth;
@@ -296,11 +296,15 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
             }
 
+            // ИСПРАВЛЕНО: Позиционируем меню ПОД элементом, а не снизу экрана
+            // Используем top вместо bottom для позиционирования под элементом
+            const menuTop = rect.bottom + 12; // 12px отступ от элемента
+            
             menuPos = {
                 left: Number(menuLeft),
-                bottom: window.innerHeight - rect.bottom - 12 // 12px отступ от элемента
+                top: menuTop // Используем top для позиционирования под элементом
             } as MenuPosition;
-            
+
             console.log('OPEN: Menu position (should NOT move)', {
                 menuPos,
                 elementRect: {
@@ -311,7 +315,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                     width: rect.width
                 },
                 menuLeft,
-                menuBottom: window.innerHeight - rect.bottom - 12,
+                menuTop,
                 viewport: { w: viewport.w, h: viewport.h },
                 safeArea
             });

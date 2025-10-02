@@ -48,7 +48,8 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                             actions={state.config.actions}
                             position={{
                                 left: Number(state.menuPosition.left),
-                                bottom: (state.menuPosition as MenuPosition).bottom || 0,
+                                top: (state.menuPosition as MenuPosition).top || undefined,
+                                bottom: (state.menuPosition as MenuPosition).bottom || undefined,
                                 width: 250
                             }}
                             maxHeightVH={state.config.maxMenuHeightVH || 60}

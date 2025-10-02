@@ -350,10 +350,10 @@ export function createPlaceholder(element: HTMLElement): HTMLElement {
     // чтобы избежать проблем с auto значениями
     placeholder.style.width = `${rect.width}px`;
     placeholder.style.height = `${rect.height}px`;
-    
+
     // Копируем только margin-bottom для сохранения отступов между сообщениями
     placeholder.style.marginBottom = computedStyle.marginBottom;
-    
+
     // Убираем остальные margin/padding чтобы избежать смещений
     placeholder.style.marginTop = '0';
     placeholder.style.marginLeft = '0';
@@ -695,15 +695,15 @@ export function shouldMoveElement(
 
     // Проверяем, помещается ли меню под элементом
     const menuFitsBelow = elementBottomAtCurrentPosition + edgeMargin + menuHeight <= viewport.h - safeArea.bottom - 16;
-    
+
     // Проверяем, не выходит ли элемент за верх экрана
     const elementFitsInViewport = elementTopAtCurrentPosition >= safeArea.top;
-    
+
     // Проверяем, не слишком ли большой элемент (высота элемента + меню > высота экрана)
     const totalHeight = elementRect.height + menuHeight + edgeMargin;
     const viewportHeight = viewport.h - safeArea.top - safeArea.bottom - 32; // 32px отступы
     const isTooLarge = totalHeight > viewportHeight;
-    
+
     // Дополнительная проверка: если элемент в верхней части экрана и меню не помещается под ним
     const isInUpperHalf = elementTopAtCurrentPosition < viewport.h / 2;
     const menuWouldOverflow = elementBottomAtCurrentPosition + edgeMargin + menuHeight > viewport.h - safeArea.bottom - 16;
@@ -731,18 +731,18 @@ export function shouldMoveElement(
     if (isTooLarge) {
         return { shouldMove: true, reason: 'too_large' };
     }
-    
+
     // Если элемент не помещается в viewport (выходит за верх) - перемещаем
     if (!elementFitsInViewport) {
         return { shouldMove: true, reason: 'viewport_overflow' };
     }
-    
+
     // Только если меню действительно не помещается под элементом - перемещаем
     // Добавляем буфер в 50px для более консервативного подхода
     if (elementBottomAtCurrentPosition + edgeMargin + menuHeight + 50 > viewport.h - safeArea.bottom - 16) {
         return { shouldMove: true, reason: 'too_high' };
     }
-    
+
     // Иначе - оставляем на месте
     return { shouldMove: false, reason: 'fits' };
 }

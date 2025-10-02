@@ -9,7 +9,7 @@ import styles from './styles.module.scss';
 
 interface ContextMenuPanelProps {
     actions: ContextMenuAction[];
-    position: { left: number; bottom: number; width: number };
+    position: { left: number; top?: number; bottom?: number; width: number };
     maxHeightVH: number;
     onActionSelect: (action: ContextMenuAction) => void;
     onClose: () => void;
@@ -90,6 +90,7 @@ export function ContextMenuPanel({
             className={styles.panel}
             style={{
                 left: position.left,
+                top: position.top,
                 bottom: position.bottom,
                 width: position.width,
                 maxHeight: `${maxHeightVH}vh`,
