@@ -233,7 +233,10 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 bottom: rect.bottom,
                 width: rect.width,
                 height: rect.height
-            }
+            },
+            viewport: getViewportRect(),
+            safeArea: getSafeArea(),
+            menuDimensions
         });
         
         let menuPos;

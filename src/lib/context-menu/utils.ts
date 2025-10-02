@@ -343,16 +343,31 @@ export function saveElementStyles(element: HTMLElement) {
  */
 export function createPlaceholder(element: HTMLElement): HTMLElement {
     const placeholder = document.createElement('div');
+    const rect = element.getBoundingClientRect();
     const computedStyle = getComputedStyle(element);
 
-    // Копируем размеры и отступы
-    placeholder.style.width = computedStyle.width;
-    placeholder.style.height = computedStyle.height;
-    placeholder.style.margin = computedStyle.margin;
-    placeholder.style.padding = computedStyle.padding;
-    placeholder.style.border = computedStyle.border;
-    placeholder.style.borderRadius = computedStyle.borderRadius;
+    // Используем точные размеры из getBoundingClientRect вместо computedStyle
+    // чтобы избежать проблем с auto значениями
+    placeholder.style.width = `${rect.width}px`;
+    placeholder.style.height = `${rect.height}px`;
+    
+    // Копируем только margin-bottom для сохранения отступов между сообщениями
+    placeholder.style.marginBottom = computedStyle.marginBottom;
+    
+    // Убираем остальные margin/padding чтобы избежать смещений
+    placeholder.style.marginTop = '0';
+    placeholder.style.marginLeft = '0';
+    placeholder.style.marginRight = '0';
+    placeholder.style.padding = '0';
+    placeholder.style.border = 'none';
+    placeholder.style.borderRadius = '0';
     placeholder.style.visibility = 'hidden'; // Делаем невидимым, но сохраняем место
+
+    console.log('createPlaceholder:', {
+        originalRect: { width: rect.width, height: rect.height },
+        originalMarginBottom: computedStyle.marginBottom,
+        placeholder: { width: placeholder.style.width, height: placeholder.style.height }
+    });
 
     return placeholder;
 }
@@ -576,7 +591,7 @@ export function calculateMenuPositionRelativeToElement(
     menuWidth: number = 250
 ): {
     left: number;
-    top: number;
+    bottom: number;
 } {
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
@@ -597,18 +612,18 @@ export function calculateMenuPositionRelativeToElement(
 
     // Вычисляем позицию меню снизу экрана (для случая когда нужно перемещать элемент)
     const menuBottom = safeArea.bottom + 16;
-    const menuTop = viewport.h - menuBottom;
 
     console.log('calculateMenuPositionRelativeToElement:', {
         elementRight,
         menuWidth,
         menuLeft,
+        menuBottom,
         elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width }
     });
 
     return {
         left: menuLeft,
-        top: menuTop
+        bottom: menuBottom
     };
 }
 
