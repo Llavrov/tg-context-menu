@@ -180,8 +180,8 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         }
     }, [state.isOpen, state.originalElement, state.config?.scrollContainer]);
 
-    const open = useCallback(async (element: HTMLElement, config: OpenContextMenuConfig) => {
-        const rect = element.getBoundingClientRect();
+    const open = useCallback(async (element: HTMLElement, config: OpenContextMenuConfig, originalRect?: DOMRect) => {
+        const rect = originalRect || element.getBoundingClientRect();
 
         console.log('OPEN START:', { element, rect });
 
@@ -449,8 +449,8 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                     return;
                 }
                 const element = e.currentTarget as HTMLElement;
-                const controller = createLongPressController(() => {
-                    open(element, config);
+                const controller = createLongPressController((originalRect) => {
+                    open(element, config, originalRect);
                 }, { delayMs: config.longPressMs || 450 });
 
                 longPressControllerRef.current = controller;

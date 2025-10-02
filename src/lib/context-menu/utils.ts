@@ -222,7 +222,7 @@ export async function ensureVisibleWithMenu(
  * Создание контроллера долгого нажатия
  */
 export function createLongPressController(
-    fire: () => void,
+    fire: (originalRect?: DOMRect) => void,
     opts: LongPressOpts = {}
 ): {
     onPointerDown: (e: React.PointerEvent) => void;
@@ -239,6 +239,7 @@ export function createLongPressController(
     let isActive = false;
     let currentElement: HTMLElement | null = null;
     let wasLongPress = false; // Флаг для отслеживания долгого нажатия
+    let originalRect: DOMRect | null = null; // Сохраняем оригинальные размеры ДО масштабирования
 
     const clearTimeoutId = () => {
         if (timeoutId) {
@@ -316,6 +317,9 @@ export function createLongPressController(
         isActive = true;
         currentElement = target;
 
+        // Сохраняем оригинальные размеры ДО масштабирования
+        originalRect = target.getBoundingClientRect();
+
         // Предотвращаем выделение текста
         target.style.userSelect = 'none';
         target.style.webkitUserSelect = 'none';
@@ -337,7 +341,7 @@ export function createLongPressController(
                         removeScaleAnimation(currentElement);
                         // Открываем меню ОДНОВРЕМЕННО с анимацией scale 1
                         if (isActive) {
-                            fire();
+                            fire(originalRect || undefined);
                         }
 
                         // Через еще 350ms (время анимации scale 1) очищаем состояние
@@ -491,14 +495,13 @@ export function saveElementStyles(element: HTMLElement) {
 /**
  * Создание placeholder элемента
  */
-export function createPlaceholder(element: HTMLElement): HTMLElement {
+export function createPlaceholder(element: HTMLElement, originalRect: DOMRect): HTMLElement {
     const placeholder = document.createElement('div');
-    const rect = element.getBoundingClientRect();
     const computedStyle = getComputedStyle(element);
 
-    // Используем точные размеры из getBoundingClientRect
-    placeholder.style.width = `${rect.width}px`;
-    placeholder.style.height = `${rect.height}px`;
+    // Используем originalRect для размеров (ДО масштабирования)
+    placeholder.style.width = `${originalRect.width}px`;
+    placeholder.style.height = `${originalRect.height}px`;
 
     // Копируем все margin для сохранения правильного позиционирования
     placeholder.style.marginTop = computedStyle.marginTop;
@@ -506,11 +509,11 @@ export function createPlaceholder(element: HTMLElement): HTMLElement {
     placeholder.style.marginLeft = computedStyle.marginLeft;
     placeholder.style.marginRight = computedStyle.marginRight;
 
-    // Копируем padding для сохранения внутренних отступов
-    placeholder.style.paddingTop = computedStyle.paddingTop;
-    placeholder.style.paddingBottom = computedStyle.paddingBottom;
-    placeholder.style.paddingLeft = computedStyle.paddingLeft;
-    placeholder.style.paddingRight = computedStyle.paddingRight;
+    // НЕ копируем padding - используем точные размеры из getBoundingClientRect
+    // placeholder.style.paddingTop = computedStyle.paddingTop;
+    // placeholder.style.paddingBottom = computedStyle.paddingBottom;
+    // placeholder.style.paddingLeft = computedStyle.paddingLeft;
+    // placeholder.style.paddingRight = computedStyle.paddingRight;
 
     // Копируем border для сохранения границ
     placeholder.style.borderTop = computedStyle.borderTop;
@@ -521,9 +524,20 @@ export function createPlaceholder(element: HTMLElement): HTMLElement {
     placeholder.style.visibility = 'hidden'; // Делаем невидимым, но сохраняем место
 
     console.log('createPlaceholder:', {
-        originalRect: { width: rect.width, height: rect.height },
+        originalRect: {
+            width: originalRect.width,
+            height: originalRect.height,
+            top: originalRect.top,
+            left: originalRect.left,
+            bottom: originalRect.bottom,
+            right: originalRect.right
+        },
         originalMarginBottom: computedStyle.marginBottom,
-        placeholder: { width: placeholder.style.width, height: placeholder.style.height }
+        placeholder: {
+            width: placeholder.style.width,
+            height: placeholder.style.height,
+            padding: `${computedStyle.paddingTop} ${computedStyle.paddingRight} ${computedStyle.paddingBottom} ${computedStyle.paddingLeft}`
+        }
     });
 
     return placeholder;
@@ -543,8 +557,8 @@ export function moveElementToOverlay(
     const originalNextSibling = element.nextSibling;
     const originalStyles = saveElementStyles(element);
 
-    // Создаем placeholder для сохранения места
-    const placeholder = createPlaceholder(element);
+    // Создаем placeholder для сохранения места (передаем rect как originalRect)
+    const placeholder = createPlaceholder(element, rect);
 
     // Заменяем элемент на placeholder
     if (originalNextSibling) {
@@ -556,13 +570,19 @@ export function moveElementToOverlay(
     // Перемещаем элемент в overlay
     overlayContainer.appendChild(element);
 
-    // Устанавливаем начальные стили с сохранением ширины И transform
+    // Получаем computed style ДО любых изменений
+    const computedStyle = getComputedStyle(element);
+    const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+    const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
+
+    // Устанавливаем начальные стили с убиранием только горизонтального padding
     element.style.position = 'absolute';
     element.style.top = `${rect.top}px`;
     element.style.left = `${rect.left}px`;
-    element.style.width = `${rect.width}px`; // Возвращаем фиксированную ширину
+    element.style.width = `${rect.width}px`; // Используем rect.width как есть
     element.style.zIndex = '1000';
-    element.style.padding = '0'; // Убираем все padding у обертки
+    // element.style.padding = '0';
+    // НЕ трогаем paddingTop и paddingBottom - оставляем вертикальные отступы
     // НЕ трогаем transform - он может содержать scale анимацию
 
     // Проверяем, есть ли уже transition для transform (от scale анимации)
@@ -625,11 +645,19 @@ export function restoreElementToOriginalPosition(
         originalNextSibling
     });
 
+    // Получаем computed style для восстановления padding
+    const computedStyle = getComputedStyle(element);
+    const originalPaddingLeft = computedStyle.paddingLeft;
+    const originalPaddingRight = computedStyle.paddingRight;
+
     // Анимируем возврат к оригинальной позиции
     element.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // Убираем transform из transition!
     element.style.top = `${originalRect.top}px`;
     element.style.left = `${originalRect.left}px`;
     element.style.width = `${originalRect.width}px`;
+    // Восстанавливаем горизонтальный padding
+    element.style.paddingLeft = originalPaddingLeft;
+    element.style.paddingRight = originalPaddingRight;
     // Убираем transform - он не нужен при возврате
 
     console.log('restoreElementToOriginalPosition ANIMATING:', {
@@ -655,7 +683,8 @@ export function restoreElementToOriginalPosition(
         element.style.transform = originalStyles.transform;
         element.style.transition = ''; // Убираем transition чтобы не было анимации
         element.style.width = ''; // Убираем фиксированную ширину
-        element.style.padding = ''; // Убираем padding: 0
+        element.style.paddingLeft = ''; // Убираем paddingLeft: 0
+        element.style.paddingRight = ''; // Убираем paddingRight: 0
         element.style.opacity = ''; // Убираем opacity если был установлен
 
         // Возвращаем элемент на место placeholder
