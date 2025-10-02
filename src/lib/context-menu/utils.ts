@@ -232,7 +232,7 @@ export function createLongPressController(
     onClick: (e: React.MouseEvent) => void;
     dispose: () => void;
 } {
-    const { delayMs = 450, moveTolerance = 10 } = opts;
+    const { delayMs = 600, moveTolerance = 10 } = opts; // 600ms - время до начала анимации scale
 
     let timeoutId: NodeJS.Timeout | null = null;
     let startPos: { x: number; y: number } | null = null;
@@ -247,13 +247,14 @@ export function createLongPressController(
         }
     };
 
-    const reset = () => {
+    const reset = (skipScaleReset = false) => {
         clearTimeoutId();
         startPos = null;
         isActive = false;
         wasLongPress = false; // Сбрасываем флаг долгого нажатия
-        // Возвращаем scale обратно
-        if (currentElement) {
+
+        // Возвращаем scale обратно только если не пропускаем
+        if (currentElement && !skipScaleReset) {
             removeScaleAnimation(currentElement);
             // Очищаем стили после анимации
             setTimeout(() => {
@@ -262,23 +263,47 @@ export function createLongPressController(
                     currentElement.style.transition = '';
                     currentElement.style.transformOrigin = ''; // Очищаем transform-origin
                 }
-            }, 700); // Ждем завершения анимации (0.7s)
-            currentElement = null;
+            }, 350); // Ждем завершения анимации (0.35s)
         }
+        currentElement = null;
     };
 
     const applyScaleAnimation = (element: HTMLElement) => {
+        console.log('applyScaleAnimation: Starting scale animation on element:', element);
+
+        // Сохраняем текущие transition стили
+        const currentTransition = element.style.transition;
+        console.log('applyScaleAnimation: Current transition before:', currentTransition);
+
         // Устанавливаем центр анимации в центр элемента
         element.style.transformOrigin = 'center';
-        element.style.transition = 'transform .7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        element.style.transform = 'scale(0.8)';
+
+        // Принудительно устанавливаем transition через setProperty для лучшей совместимости
+        element.style.setProperty('transition', 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)', 'important');
+        element.style.transform = 'scale(0.95)';
+
+        console.log('applyScaleAnimation: Applied styles:', {
+            transformOrigin: element.style.transformOrigin,
+            transition: element.style.transition,
+            transform: element.style.transform
+        });
     };
 
     const removeScaleAnimation = (element: HTMLElement) => {
+        console.log('removeScaleAnimation: Starting scale removal on element:', element);
+
         // Устанавливаем центр анимации в центр элемента
         element.style.transformOrigin = 'center';
-        element.style.transition = 'transform .7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+
+        // Принудительно устанавливаем transition через setProperty для лучшей совместимости
+        element.style.setProperty('transition', 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)', 'important');
         element.style.transform = 'scale(1)';
+
+        console.log('removeScaleAnimation: Applied styles:', {
+            transformOrigin: element.style.transformOrigin,
+            transition: element.style.transition,
+            transform: element.style.transform
+        });
     };
 
 
@@ -305,25 +330,45 @@ export function createLongPressController(
                 wasLongPress = true; // Устанавливаем флаг долгого нажатия
                 applyScaleAnimation(target);
                 triggerHaptic(HapticType.MEDIUM);
-                fire();
+
+                // Через 350ms (время анимации scale 0.9) возвращаем к scale 1 и ОДНОВРЕМЕННО открываем меню
+                setTimeout(() => {
+                    if (isActive && currentElement) {
+                        removeScaleAnimation(currentElement);
+                        // Открываем меню ОДНОВРЕМЕННО с анимацией scale 1
+                        if (isActive) {
+                            fire();
+                        }
+                    }
+                }, 350);
             }
         }, delayMs);
     };
 
     const onPointerUp = () => {
-        // Убираем анимацию перед сбросом
-        if (currentElement) {
-            removeScaleAnimation(currentElement);
+        // Если это было долгое нажатие, просто сбрасываем состояние без анимаций
+        if (wasLongPress) {
+            reset(true); // Пропускаем сброс scale анимации
+        } else {
+            // Убираем анимацию перед сбросом только для обычных нажатий
+            if (currentElement) {
+                removeScaleAnimation(currentElement);
+            }
+            reset();
         }
-        reset();
     };
 
     const onPointerCancel = () => {
-        // Убираем анимацию перед сбросом
-        if (currentElement) {
-            removeScaleAnimation(currentElement);
+        // Если это было долгое нажатие, просто сбрасываем состояние без анимаций
+        if (wasLongPress) {
+            reset(true); // Пропускаем сброс scale анимации
+        } else {
+            // Убираем анимацию перед сбросом только для обычных нажатий
+            if (currentElement) {
+                removeScaleAnimation(currentElement);
+            }
+            reset();
         }
-        reset();
     };
 
     const onPointerMove = (e: React.PointerEvent) => {
@@ -343,10 +388,8 @@ export function createLongPressController(
 
     const onClick = (e: React.MouseEvent) => {
         console.log('createLongPressController: onClick triggered', e.currentTarget, 'wasLongPress:', wasLongPress);
-        // Убираем анимацию при обычном клике - только хаптик
-        if (!wasLongPress) {
-            triggerHaptic(HapticType.SELECTION);
-        }
+        // При обычном клике не должно быть хаптика, только при долгом нажатии
+        // Хаптик убран из обычного тапа
     };
 
     const dispose = () => {
@@ -495,7 +538,16 @@ export function moveElementToOverlay(
     element.style.left = `${rect.left}px`;
     element.style.width = `${rect.width}px`; // Сохраняем ширину
     element.style.zIndex = '1000';
-    element.style.transition = 'top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)'; // БЕЗ opacity!
+
+    // Проверяем, есть ли уже transition для transform (от scale анимации)
+    const currentTransition = element.style.transition;
+    if (currentTransition && currentTransition.includes('transform')) {
+        // Если есть transition для transform, добавляем к нему top и left
+        element.style.transition = `${currentTransition}, top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)`;
+    } else {
+        // Иначе устанавливаем только для top и left
+        element.style.transition = 'top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    }
 
     // Если есть финальная позиция, анимируем к ней
     if (finalPosition) {
@@ -546,11 +598,11 @@ export function restoreElementToOriginalPosition(
     });
 
     // Анимируем возврат к оригинальной позиции
-    element.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // БЕЗ opacity!
+    element.style.transition = 'top 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'; // Убираем transform из transition!
     element.style.top = `${originalRect.top}px`;
     element.style.left = `${originalRect.left}px`;
     element.style.width = `${originalRect.width}px`;
-    element.style.transform = 'translateY(0)';
+    // Убираем transform - он не нужен при возврате
 
     console.log('restoreElementToOriginalPosition ANIMATING:', {
         elementStyles: {
@@ -567,14 +619,15 @@ export function restoreElementToOriginalPosition(
             placeholderParent: placeholder.parentElement
         });
 
-        // Возвращаем оригинальные стили
+        // Возвращаем оригинальные стили БЕЗ transition, чтобы элемент не исчезал
         element.style.position = originalStyles.position;
         element.style.top = originalStyles.top;
         element.style.left = originalStyles.left;
         element.style.zIndex = originalStyles.zIndex;
         element.style.transform = originalStyles.transform;
-        element.style.transition = '';
+        element.style.transition = ''; // Убираем transition чтобы не было анимации
         element.style.width = ''; // Убираем фиксированную ширину
+        element.style.opacity = ''; // Убираем opacity если был установлен
 
         // Возвращаем элемент на место placeholder
         if (placeholder.parentElement) {

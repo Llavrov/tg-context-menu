@@ -28,9 +28,9 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             transition={{
-                                duration: 0.35,
-                                delay: 0.15, // Задержка - сначала перемещается элемент
-                                ease: [0.64, 0, 0.78, 0] // easeInQuint
+                                duration: 0.3,
+                                delay: 0.1, // Задержка - сначала перемещается элемент
+                                ease: [0.16, 1, 0.3, 1] // easeOutExpo
                             }}
                             className={styles.backdrop}
                             onClick={onClose}

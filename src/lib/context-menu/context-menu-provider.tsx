@@ -383,6 +383,9 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         // Возвращаем элемент на место с анимацией
         if (state.originalElement && state.originalParent && state.originalStyles && placeholder && state.originalPosition) {
             console.log('CLOSE: Calling restoreElementToOriginalPosition with placeholder from ref');
+
+            // НЕ сбрасываем scale анимацию при закрытии - она уже завершена
+
             restoreElementToOriginalPosition(
                 state.originalElement,
                 state.originalParent,
