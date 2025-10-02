@@ -165,6 +165,7 @@ export function createLongPressController(
     let timeoutId: NodeJS.Timeout | null = null;
     let startPos: { x: number; y: number } | null = null;
     let isActive = false;
+    let currentElement: HTMLElement | null = null;
 
     const clearTimeoutId = () => {
         if (timeoutId) {
@@ -177,6 +178,22 @@ export function createLongPressController(
         clearTimeoutId();
         startPos = null;
         isActive = false;
+        // Возвращаем scale обратно
+        if (currentElement) {
+            currentElement.style.transform = '';
+            currentElement.style.transition = '';
+            currentElement = null;
+        }
+    };
+
+    const applyScaleAnimation = (element: HTMLElement) => {
+        element.style.transition = 'transform 0.1s ease-out';
+        element.style.transform = 'scale(0.95)';
+    };
+
+    const removeScaleAnimation = (element: HTMLElement) => {
+        element.style.transition = 'transform 0.15s ease-out';
+        element.style.transform = 'scale(1)';
     };
 
     const onPointerDown = (e: React.PointerEvent) => {
@@ -186,6 +203,10 @@ export function createLongPressController(
         const target = e.currentTarget as HTMLElement;
         startPos = { x: e.clientX, y: e.clientY };
         isActive = true;
+        currentElement = target;
+
+        // Применяем анимацию scale сразу
+        applyScaleAnimation(target);
 
         // Предотвращаем выделение текста
         target.style.userSelect = 'none';
@@ -197,17 +218,25 @@ export function createLongPressController(
 
         timeoutId = setTimeout(() => {
             if (isActive && startPos) {
-                triggerHaptic();
+                triggerHaptic(HapticType.MEDIUM);
                 fire();
             }
         }, delayMs);
     };
 
     const onPointerUp = () => {
+        // Убираем анимацию перед сбросом
+        if (currentElement) {
+            removeScaleAnimation(currentElement);
+        }
         reset();
     };
 
     const onPointerCancel = () => {
+        // Убираем анимацию перед сбросом
+        if (currentElement) {
+            removeScaleAnimation(currentElement);
+        }
         reset();
     };
 
@@ -218,6 +247,10 @@ export function createLongPressController(
         const deltaY = Math.abs(e.clientY - startPos.y);
 
         if (deltaX > moveTolerance || deltaY > moveTolerance) {
+            // Убираем анимацию при движении
+            if (currentElement) {
+                removeScaleAnimation(currentElement);
+            }
             reset();
         }
     };
@@ -617,6 +650,76 @@ export function calculateElementFinalPosition(
 /**
  * Проверка, помещается ли элемент и меню в видимую область
  */
+/**
+ * Проверяет, нужно ли перемещать элемент или можно оставить на месте
+ */
+export function shouldMoveElement(
+    elementRect: DOMRect,
+    menuHeight: number,
+    edgeMargin: number = 12
+): {
+    shouldMove: boolean;
+    reason: 'fits' | 'too_high' | 'too_large' | 'viewport_overflow';
+} {
+    const viewport = getViewportRect();
+    const safeArea = getSafeArea();
+    
+    // Вычисляем позицию меню снизу экрана
+    const menuTop = viewport.h - menuHeight - safeArea.bottom - 16;
+    
+    // Вычисляем, где будет нижняя граница элемента, если оставить его на месте
+    const elementBottomAtCurrentPosition = elementRect.bottom;
+    
+    // Вычисляем, где будет верхняя граница элемента, если оставить его на месте
+    const elementTopAtCurrentPosition = elementRect.top;
+    
+    // Проверяем, помещается ли меню под элементом
+    const menuFitsBelow = elementBottomAtCurrentPosition + edgeMargin + menuHeight <= viewport.h - safeArea.bottom - 16;
+    
+    // Проверяем, не выходит ли элемент за верх экрана
+    const elementFitsInViewport = elementTopAtCurrentPosition >= safeArea.top;
+    
+    // Проверяем, не слишком ли большой элемент (высота элемента + меню > высота экрана)
+    const totalHeight = elementRect.height + menuHeight + edgeMargin;
+    const viewportHeight = viewport.h - safeArea.top - safeArea.bottom - 32; // 32px отступы
+    const isTooLarge = totalHeight > viewportHeight;
+    
+    console.log('SHOULD_MOVE_ELEMENT:', {
+        elementRect: {
+            top: elementRect.top,
+            bottom: elementRect.bottom,
+            height: elementRect.height
+        },
+        menuHeight,
+        viewport: { h: viewport.h },
+        safeArea,
+        menuTop,
+        menuFitsBelow,
+        elementFitsInViewport,
+        isTooLarge,
+        totalHeight,
+        viewportHeight
+    });
+    
+    // Если элемент слишком большой для экрана - перемещаем
+    if (isTooLarge) {
+        return { shouldMove: true, reason: 'too_large' };
+    }
+    
+    // Если элемент не помещается в viewport (выходит за верх) - перемещаем
+    if (!elementFitsInViewport) {
+        return { shouldMove: true, reason: 'viewport_overflow' };
+    }
+    
+    // Если меню не помещается под элементом - перемещаем
+    if (!menuFitsBelow) {
+        return { shouldMove: true, reason: 'too_high' };
+    }
+    
+    // Иначе - оставляем на месте
+    return { shouldMove: false, reason: 'fits' };
+}
+
 export function checkElementAndMenuFit(
     elementRect: DOMRect,
     menuHeight: number,

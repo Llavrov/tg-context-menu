@@ -20,6 +20,7 @@ import {
     checkElementAndMenuFit,
     calculateElementFinalPosition,
     calculateMenuPositionRelativeToElement,
+    shouldMoveElement,
     triggerHaptic,
     HapticType,
     isHapticSupported
@@ -77,24 +78,41 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 state.config.maxMenuHeightVH || 60
             );
 
-            // Вычисляем позицию меню относительно элемента
-            const menuPos = calculateMenuPositionRelativeToElement(rect, 250);
-
-            // Вычисляем финальную позицию элемента (как в Telegram)
-            const finalPosition = calculateElementFinalPosition(
+            // Проверяем, нужно ли перемещать элемент
+            const moveCheck = shouldMoveElement(
                 rect,
                 menuDimensions.height,
-                menuPos.left,
                 state.config.edgeMargin || 12
             );
 
-            // Перемещаем элемент в overlay с placeholder и финальной позицией
-            const result = moveElementToOverlay(
-                element,
-                overlayRef.current,
-                rect,
-                { top: finalPosition.finalTop, left: finalPosition.finalLeft }
-            );
+            console.log('useEffect: Move check', moveCheck);
+
+            let result;
+            if (moveCheck.shouldMove) {
+                // Если нужно перемещать - используем старую логику
+                const menuPos = calculateMenuPositionRelativeToElement(rect, 250);
+                const finalPosition = calculateElementFinalPosition(
+                    rect,
+                    menuDimensions.height,
+                    menuPos.left,
+                    state.config.edgeMargin || 12
+                );
+
+                result = moveElementToOverlay(
+                    element,
+                    overlayRef.current,
+                    rect,
+                    { top: finalPosition.finalTop, left: finalPosition.finalLeft }
+                );
+            } else {
+                // Если не нужно перемещать - просто перемещаем в overlay без изменения позиции
+                result = moveElementToOverlay(
+                    element,
+                    overlayRef.current,
+                    rect
+                    // Не передаем finalPosition - элемент остается на месте
+                );
+            }
 
             console.log('useEffect: Saving placeholder to ref', result.placeholder);
 
@@ -105,7 +123,6 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             setState(prev => ({
                 ...prev,
                 placeholderElement: result.placeholder,
-                menuPosition: menuPos,
                 originalParent: result.originalParent,
                 originalNextSibling: result.originalNextSibling,
                 originalStyles: result.originalStyles
@@ -163,12 +180,14 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             config.maxMenuHeightVH || 60
         );
 
-        // Проверяем, помещается ли элемент и меню
-        const fitCheck = checkElementAndMenuFit(
+        // Проверяем, нужно ли перемещать элемент
+        const moveCheck = shouldMoveElement(
             rect,
             menuDimensions.height,
             config.edgeMargin || 12
         );
+
+        console.log('MOVE_CHECK:', moveCheck);
 
         // Сохраняем оригинальные данные элемента
         const originalParent = element.parentElement!;
@@ -187,11 +206,24 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             originalStyles
         });
 
+        // Вычисляем позицию меню
+        let menuPos;
+        if (moveCheck.shouldMove) {
+            // Если нужно перемещать - используем старую логику
+            menuPos = calculateMenuPositionRelativeToElement(rect, 250);
+        } else {
+            // Если не нужно перемещать - меню под элементом
+            menuPos = {
+                left: rect.left + (rect.width - 250) / 2, // Центрируем под элементом
+                top: rect.bottom + 12 // 12px отступ от элемента
+            };
+        }
+
         setState({
             isOpen: true,
             originalElement: element,
             originalPosition: rect,
-            menuPosition: null, // Будет установлена в useEffect
+            menuPosition: menuPos,
             originalParent,
             originalNextSibling,
             originalStyles,
@@ -200,12 +232,15 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             config,
         });
 
-        // Если не помещается, скроллим контейнер
-        if (fitCheck.needsScroll) {
-            await ensureVisibleWithMenu(rect, menuDimensions.height, {
-                edgeMargin: config.edgeMargin || 12,
-                scrollContainer: config.scrollContainer || 'window',
-            });
+        // Если нужно перемещать и не помещается, скроллим контейнер
+        if (moveCheck.shouldMove) {
+            const fitCheck = checkElementAndMenuFit(rect, menuDimensions.height, config.edgeMargin || 12);
+            if (fitCheck.needsScroll) {
+                await ensureVisibleWithMenu(rect, menuDimensions.height, {
+                    edgeMargin: config.edgeMargin || 12,
+                    scrollContainer: config.scrollContainer || 'window',
+                });
+            }
         }
 
         // Переходим в стабильное состояние

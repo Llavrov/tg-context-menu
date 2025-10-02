@@ -2,7 +2,7 @@
 
 import React, { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { OverlayState, ContextMenuAction } from '../types';
+import { OverlayState, ContextMenuAction, MenuPosition } from '../types';
 import { ContextMenuPanel } from './context-menu-panel';
 import styles from './styles.module.scss';
 
@@ -48,7 +48,7 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                             actions={state.config.actions}
                             position={{
                                 left: state.menuPosition.left,
-                                bottom: window.innerHeight - state.menuPosition.top,
+                                bottom: (state.menuPosition as MenuPosition).bottom || (state.menuPosition.top ? window.innerHeight - state.menuPosition.top : 0),
                                 width: 250
                             }}
                             maxHeightVH={state.config.maxMenuHeightVH || 60}
