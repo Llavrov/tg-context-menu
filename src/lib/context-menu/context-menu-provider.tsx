@@ -276,12 +276,14 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         } else {
             // Если не нужно перемещать - меню под элементом
             const menuWidth = 250;
-            let menuLeft = rect.left + (rect.width - menuWidth) / 2; // Центрируем под элементом
-
-            // Проверяем границы экрана
             const viewport = getViewportRect();
             const safeArea = getSafeArea();
+            
+            // Выравниваем меню по правому краю элемента (как в Telegram)
+            const elementRight = rect.right;
+            let menuLeft = elementRight - menuWidth;
 
+            // Проверяем границы экрана
             if (menuLeft < safeArea.left + 16) {
                 menuLeft = safeArea.left + 16;
             }

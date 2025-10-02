@@ -398,11 +398,11 @@ export function moveElementToOverlay(
         requestAnimationFrame(() => {
             element.style.top = `${finalPosition.top}px`;
             element.style.left = `${finalPosition.left}px`;
-            element.style.transform = 'translateY(-5px)';
+            // Убираем translateY - элемент должен оставаться в своем размере
         });
     } else {
-        // Просто поднимаем элемент
-        element.style.transform = 'translateY(-5px)';
+        // Элемент остается на месте без дополнительных трансформаций
+        // Убираем translateY - элемент должен оставаться в своем размере
     }
 
     console.log('moveElementToOverlay:', {
