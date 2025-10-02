@@ -722,14 +722,10 @@ export function shouldMoveElement(
         return { shouldMove: true, reason: 'viewport_overflow' };
     }
     
-    // Если меню не помещается под элементом - перемещаем
-    if (!menuFitsBelow) {
+    // Только если меню действительно не помещается под элементом - перемещаем
+    // Добавляем буфер в 50px для более консервативного подхода
+    if (elementBottomAtCurrentPosition + edgeMargin + menuHeight + 50 > viewport.h - safeArea.bottom - 16) {
         return { shouldMove: true, reason: 'too_high' };
-    }
-    
-    // Дополнительная проверка: если элемент в верхней части и меню переполняется
-    if (isInUpperHalf && menuWouldOverflow) {
-        return { shouldMove: true, reason: 'upper_overflow' };
     }
     
     // Иначе - оставляем на месте
