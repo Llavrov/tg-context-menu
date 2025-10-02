@@ -180,19 +180,25 @@ export function createLongPressController(
         isActive = false;
         // Возвращаем scale обратно
         if (currentElement) {
-            currentElement.style.transform = '';
-            currentElement.style.transition = '';
+            removeScaleAnimation(currentElement);
+            // Очищаем стили после анимации
+            setTimeout(() => {
+                if (currentElement) {
+                    currentElement.style.transform = '';
+                    currentElement.style.transition = '';
+                }
+            }, 250); // Ждем завершения анимации
             currentElement = null;
         }
     };
 
     const applyScaleAnimation = (element: HTMLElement) => {
-        element.style.transition = 'transform 0.1s ease-out';
+        element.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         element.style.transform = 'scale(0.95)';
     };
 
     const removeScaleAnimation = (element: HTMLElement) => {
-        element.style.transition = 'transform 0.15s ease-out';
+        element.style.transition = 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         element.style.transform = 'scale(1)';
     };
 
@@ -205,9 +211,6 @@ export function createLongPressController(
         isActive = true;
         currentElement = target;
 
-        // Применяем анимацию scale сразу
-        applyScaleAnimation(target);
-
         // Предотвращаем выделение текста
         target.style.userSelect = 'none';
         target.style.webkitUserSelect = 'none';
@@ -218,6 +221,8 @@ export function createLongPressController(
 
         timeoutId = setTimeout(() => {
             if (isActive && startPos) {
+                // Применяем анимацию scale только при долгом нажатии
+                applyScaleAnimation(target);
                 triggerHaptic(HapticType.MEDIUM);
                 fire();
             }
@@ -590,7 +595,7 @@ export function calculateMenuPositionRelativeToElement(
         menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
     }
 
-    // Вычисляем позицию меню снизу экрана
+    // Вычисляем позицию меню снизу экрана (для случая когда нужно перемещать элемент)
     const menuBottom = safeArea.bottom + 16;
     const menuTop = viewport.h - menuBottom;
 
@@ -663,27 +668,27 @@ export function shouldMoveElement(
 } {
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
-    
+
     // Вычисляем позицию меню снизу экрана
     const menuTop = viewport.h - menuHeight - safeArea.bottom - 16;
-    
+
     // Вычисляем, где будет нижняя граница элемента, если оставить его на месте
     const elementBottomAtCurrentPosition = elementRect.bottom;
-    
+
     // Вычисляем, где будет верхняя граница элемента, если оставить его на месте
     const elementTopAtCurrentPosition = elementRect.top;
-    
+
     // Проверяем, помещается ли меню под элементом
     const menuFitsBelow = elementBottomAtCurrentPosition + edgeMargin + menuHeight <= viewport.h - safeArea.bottom - 16;
-    
+
     // Проверяем, не выходит ли элемент за верх экрана
     const elementFitsInViewport = elementTopAtCurrentPosition >= safeArea.top;
-    
+
     // Проверяем, не слишком ли большой элемент (высота элемента + меню > высота экрана)
     const totalHeight = elementRect.height + menuHeight + edgeMargin;
     const viewportHeight = viewport.h - safeArea.top - safeArea.bottom - 32; // 32px отступы
     const isTooLarge = totalHeight > viewportHeight;
-    
+
     console.log('SHOULD_MOVE_ELEMENT:', {
         elementRect: {
             top: elementRect.top,
@@ -700,22 +705,22 @@ export function shouldMoveElement(
         totalHeight,
         viewportHeight
     });
-    
+
     // Если элемент слишком большой для экрана - перемещаем
     if (isTooLarge) {
         return { shouldMove: true, reason: 'too_large' };
     }
-    
+
     // Если элемент не помещается в viewport (выходит за верх) - перемещаем
     if (!elementFitsInViewport) {
         return { shouldMove: true, reason: 'viewport_overflow' };
     }
-    
+
     // Если меню не помещается под элементом - перемещаем
     if (!menuFitsBelow) {
         return { shouldMove: true, reason: 'too_high' };
     }
-    
+
     // Иначе - оставляем на месте
     return { shouldMove: false, reason: 'fits' };
 }
