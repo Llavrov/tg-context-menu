@@ -207,14 +207,14 @@ export function createLongPressController(
         // Анимация при тапе: scale(0.9) -> scale(1)
         element.style.transition = 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
         element.style.transform = 'scale(0.9)';
-        
+
         // Хаптик при тапе
         triggerHaptic(HapticType.SELECTION);
-        
+
         // Возвращаем к нормальному размеру
         requestAnimationFrame(() => {
             element.style.transform = 'scale(1)';
-            
+
             // Очищаем стили после анимации
             setTimeout(() => {
                 element.style.transform = '';

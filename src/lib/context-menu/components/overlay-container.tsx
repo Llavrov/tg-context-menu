@@ -18,16 +18,9 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
         return (
             <AnimatePresence>
                 {state.isOpen && state.config && (
-                    <motion.div
+                    <div
                         ref={ref}
                         className={styles.overlayContainer}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{
-                            duration: 0.3,
-                            ease: [0.4, 0, 0.2, 1] // easeOut
-                        }}
                     >
                         {/* Backdrop */}
                         <motion.div
@@ -61,7 +54,7 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                                 onClose={onClose}
                             />
                         )}
-                    </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         );
