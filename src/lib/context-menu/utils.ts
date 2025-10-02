@@ -232,7 +232,7 @@ export function createLongPressController(
     onClick: (e: React.MouseEvent) => void;
     dispose: () => void;
 } {
-    const { delayMs = 600, moveTolerance = 10 } = opts; // 600ms - время до начала анимации scale
+    const { delayMs = 350, moveTolerance = 10 } = opts; // 600ms - время до начала анимации scale
 
     let timeoutId: NodeJS.Timeout | null = null;
     let startPos: { x: number; y: number } | null = null;
@@ -479,21 +479,28 @@ export function createPlaceholder(element: HTMLElement): HTMLElement {
     const rect = element.getBoundingClientRect();
     const computedStyle = getComputedStyle(element);
 
-    // Используем точные размеры из getBoundingClientRect вместо computedStyle
-    // чтобы избежать проблем с auto значениями
+    // Используем точные размеры из getBoundingClientRect
     placeholder.style.width = `${rect.width}px`;
     placeholder.style.height = `${rect.height}px`;
 
-    // Копируем только margin-bottom для сохранения отступов между сообщениями
+    // Копируем все margin для сохранения правильного позиционирования
+    placeholder.style.marginTop = computedStyle.marginTop;
     placeholder.style.marginBottom = computedStyle.marginBottom;
+    placeholder.style.marginLeft = computedStyle.marginLeft;
+    placeholder.style.marginRight = computedStyle.marginRight;
 
-    // Убираем остальные margin/padding чтобы избежать смещений
-    placeholder.style.marginTop = '0';
-    placeholder.style.marginLeft = '0';
-    placeholder.style.marginRight = '0';
-    placeholder.style.padding = '0';
-    placeholder.style.border = 'none';
-    placeholder.style.borderRadius = '0';
+    // Копируем padding для сохранения внутренних отступов
+    placeholder.style.paddingTop = computedStyle.paddingTop;
+    placeholder.style.paddingBottom = computedStyle.paddingBottom;
+    placeholder.style.paddingLeft = computedStyle.paddingLeft;
+    placeholder.style.paddingRight = computedStyle.paddingRight;
+
+    // Копируем border для сохранения границ
+    placeholder.style.borderTop = computedStyle.borderTop;
+    placeholder.style.borderBottom = computedStyle.borderBottom;
+    placeholder.style.borderLeft = computedStyle.borderLeft;
+    placeholder.style.borderRight = computedStyle.borderRight;
+    placeholder.style.borderRadius = computedStyle.borderRadius;
     placeholder.style.visibility = 'hidden'; // Делаем невидимым, но сохраняем место
 
     console.log('createPlaceholder:', {
@@ -532,21 +539,23 @@ export function moveElementToOverlay(
     // Перемещаем элемент в overlay
     overlayContainer.appendChild(element);
 
-    // Устанавливаем начальные стили с сохранением ширины
+    // Устанавливаем начальные стили с сохранением ширины И transform
     element.style.position = 'absolute';
     element.style.top = `${rect.top}px`;
     element.style.left = `${rect.left}px`;
-    element.style.width = `${rect.width}px`; // Сохраняем ширину
+    element.style.width = `${rect.width}px`; // Возвращаем фиксированную ширину
     element.style.zIndex = '1000';
+    element.style.padding = '0'; // Убираем все padding у обертки
+    // НЕ трогаем transform - он может содержать scale анимацию
 
     // Проверяем, есть ли уже transition для transform (от scale анимации)
     const currentTransition = element.style.transition;
     if (currentTransition && currentTransition.includes('transform')) {
-        // Если есть transition для transform, добавляем к нему top и left
-        element.style.transition = `${currentTransition}, top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)`;
+        // Если есть transition для transform, добавляем к нему top и left через setProperty
+        element.style.setProperty('transition', `${currentTransition}, top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)`, 'important');
     } else {
         // Иначе устанавливаем только для top и left
-        element.style.transition = 'top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        element.style.setProperty('transition', 'top 0.4s cubic-bezier(0.4, 0, 0.2, 1), left 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 'important');
     }
 
     // Если есть финальная позиция, анимируем к ней
@@ -566,7 +575,9 @@ export function moveElementToOverlay(
         rect: { top: rect.top, left: rect.left, width: rect.width },
         finalPosition,
         placeholder,
-        element
+        element,
+        currentTransform: element.style.transform,
+        currentTransition: element.style.transition
     });
 
     return {
@@ -627,6 +638,7 @@ export function restoreElementToOriginalPosition(
         element.style.transform = originalStyles.transform;
         element.style.transition = ''; // Убираем transition чтобы не было анимации
         element.style.width = ''; // Убираем фиксированную ширину
+        element.style.padding = ''; // Убираем padding: 0
         element.style.opacity = ''; // Убираем opacity если был установлен
 
         // Возвращаем элемент на место placeholder
