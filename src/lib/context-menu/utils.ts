@@ -167,6 +167,7 @@ export function createLongPressController(
     let startPos: { x: number; y: number } | null = null;
     let isActive = false;
     let currentElement: HTMLElement | null = null;
+    let wasLongPress = false; // Флаг для отслеживания долгого нажатия
 
     const clearTimeoutId = () => {
         if (timeoutId) {
@@ -179,6 +180,7 @@ export function createLongPressController(
         clearTimeoutId();
         startPos = null;
         isActive = false;
+        wasLongPress = false; // Сбрасываем флаг долгого нажатия
         // Возвращаем scale обратно
         if (currentElement) {
             removeScaleAnimation(currentElement);
@@ -204,9 +206,10 @@ export function createLongPressController(
     };
 
     const applyTapAnimation = (element: HTMLElement) => {
-        // Анимация при тапе: scale(0.9) -> scale(1)
-        element.style.transition = 'transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-        element.style.transform = 'scale(0.9)';
+        console.log('applyTapAnimation: Applying tap animation', element);
+        // Анимация при тапе: scale(0.95) -> scale(1) как в Telegram
+        element.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        element.style.transform = 'scale(0.95)';
 
         // Хаптик при тапе
         triggerHaptic(HapticType.SELECTION);
@@ -219,7 +222,7 @@ export function createLongPressController(
             setTimeout(() => {
                 element.style.transform = '';
                 element.style.transition = '';
-            }, 150);
+            }, 200);
         });
     };
 
@@ -243,6 +246,7 @@ export function createLongPressController(
         timeoutId = setTimeout(() => {
             if (isActive && startPos) {
                 // Применяем анимацию scale только при долгом нажатии
+                wasLongPress = true; // Устанавливаем флаг долгого нажатия
                 applyScaleAnimation(target);
                 triggerHaptic(HapticType.MEDIUM);
                 fire();
@@ -282,9 +286,12 @@ export function createLongPressController(
     };
 
     const onClick = (e: React.MouseEvent) => {
+        console.log('createLongPressController: onClick triggered', e.currentTarget, 'wasLongPress:', wasLongPress);
         // Анимация при обычном клике (не долгое нажатие)
-        const target = e.currentTarget as HTMLElement;
-        applyTapAnimation(target);
+        if (!wasLongPress) {
+            const target = e.currentTarget as HTMLElement;
+            applyTapAnimation(target);
+        }
     };
 
     const dispose = () => {
