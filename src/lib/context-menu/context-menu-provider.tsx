@@ -20,6 +20,7 @@ import {
     calculateMenuDimensions,
     checkElementAndMenuFit,
     calculateElementFinalPosition,
+    calculateMenuPositionUnderElement,
     shouldMoveElement,
     getViewportRect,
     getSafeArea,
@@ -245,47 +246,23 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             const viewport = getViewportRect();
             const safeArea = getSafeArea();
             const menuWidth = 250;
+            const alignment = config.menuAlignment || 'right';
 
-            // Выравниваем меню по правому краю элемента
-            const elementRight = rect.right;
-            let menuLeft = elementRight - menuWidth;
+            let menuLeft: number;
 
-            // Проверяем, чтобы меню не выходило за левый край экрана
-            if (menuLeft < safeArea.left + 16) {
-                menuLeft = safeArea.left + 16;
+            // Вычисляем позицию в зависимости от выравнивания
+            switch (alignment) {
+                case 'left':
+                    menuLeft = rect.left;
+                    break;
+                case 'center':
+                    menuLeft = rect.left + (rect.width - menuWidth) / 2;
+                    break;
+                case 'right':
+                default:
+                    menuLeft = rect.right - menuWidth;
+                    break;
             }
-
-            // Проверяем, чтобы меню не выходило за правый край экрана
-            if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
-                menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
-            }
-
-            // Позиция меню снизу экрана
-            const menuBottom = safeArea.bottom + 16;
-            const menuTop = viewport.h - menuBottom;
-
-            menuPos = {
-                left: Number(menuLeft),
-                bottom: menuBottom
-            } as MenuPosition;
-
-            console.log('OPEN: Menu position (should move)', {
-                menuPos,
-                elementRight,
-                menuLeft,
-                menuBottom,
-                viewport: { w: viewport.w, h: viewport.h },
-                safeArea
-            });
-        } else {
-            // Если не нужно перемещать - меню под элементом
-            const menuWidth = 250;
-            const viewport = getViewportRect();
-            const safeArea = getSafeArea();
-
-            // Выравниваем меню по правому краю элемента (как в Telegram)
-            const elementRight = rect.right;
-            let menuLeft = elementRight - menuWidth;
 
             // Проверяем границы экрана
             if (menuLeft < safeArea.left + 16) {
@@ -296,28 +273,52 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
             }
 
-            // ИСПРАВЛЕНО: Позиционируем меню ПОД элементом, а не снизу экрана
-            // Используем top вместо bottom для позиционирования под элементом
-            const menuTop = rect.bottom + 12; // 12px отступ от элемента
-            
+            // Позиция меню снизу экрана
+            const menuBottom = safeArea.bottom + 16;
+
             menuPos = {
                 left: Number(menuLeft),
-                top: menuTop // Используем top для позиционирования под элементом
+                bottom: menuBottom
+            } as MenuPosition;
+
+            console.log('OPEN: Menu position (should move)', {
+                menuPos,
+                alignment,
+                elementRect: { left: rect.left, right: rect.right, width: rect.width },
+                menuLeft,
+                menuBottom,
+                viewport: { w: viewport.w, h: viewport.h },
+                safeArea
+            });
+        } else {
+            // Если не нужно перемещать - меню под элементом
+            const alignment = config.menuAlignment || 'right';
+            const edgeMargin = config.edgeMargin || 12;
+            
+            // Используем новую функцию для расчета позиции под элементом
+            const position = calculateMenuPositionUnderElement(
+                rect,
+                250, // menuWidth
+                alignment,
+                edgeMargin
+            );
+            
+            menuPos = {
+                left: position.left,
+                top: position.top
             } as MenuPosition;
 
             console.log('OPEN: Menu position (should NOT move)', {
                 menuPos,
+                alignment,
+                edgeMargin,
                 elementRect: {
                     left: rect.left,
                     right: rect.right,
                     top: rect.top,
                     bottom: rect.bottom,
                     width: rect.width
-                },
-                menuLeft,
-                menuTop,
-                viewport: { w: viewport.w, h: viewport.h },
-                safeArea
+                }
             });
         }
 
@@ -339,9 +340,9 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             const fitCheck = checkElementAndMenuFit(rect, menuDimensions.height, config.edgeMargin || 12);
             if (fitCheck.needsScroll) {
                 await ensureVisibleWithMenu(rect, menuDimensions.height, {
-                    edgeMargin: config.edgeMargin || 12,
-                    scrollContainer: config.scrollContainer || 'window',
-                });
+            edgeMargin: config.edgeMargin || 12,
+            scrollContainer: config.scrollContainer || 'window',
+        });
             }
         }
 
@@ -415,8 +416,8 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
         setTimeout(() => {
             console.log('CLOSE: Clearing state and ref');
             placeholderRef.current = null; // Очищаем ref
-            setState({
-                isOpen: false,
+        setState({
+            isOpen: false,
                 originalElement: null,
                 placeholderElement: null,
                 originalPosition: null,
@@ -431,8 +432,8 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                     transform: 'none',
                 },
                 animationPhase: 'initial',
-                config: null,
-            });
+            config: null,
+        });
         }, 350); // Увеличиваем время для завершения анимации возврата
     }, [state.originalElement, state.originalParent, state.originalNextSibling, state.originalStyles, state.placeholderElement, state.originalPosition]);
 
@@ -506,7 +507,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                     ref={overlayRef}
                     state={state}
                     onClose={() => close('backdrop')}
-                    onActionSelect={handleActionSelect}
+                                onActionSelect={handleActionSelect}
                 />,
                 portalRef.current || document.body
             )}

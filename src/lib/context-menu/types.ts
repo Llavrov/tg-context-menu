@@ -9,6 +9,8 @@ export type ContextMenuAction = {
     onSelect: () => void | Promise<void>;
 };
 
+export type MenuAlignment = 'left' | 'right' | 'center';
+
 export type OpenContextMenuConfig = {
     title?: string;               // заголовок для emoji-bar
     emojis?: string[];            // эмодзи в верхнем баре
@@ -17,6 +19,7 @@ export type OpenContextMenuConfig = {
     edgeMargin?: number;          // отступ между элементом и меню, default 12
     maxMenuHeightVH?: number;     // например 60 (vh)
     scrollContainer?: HTMLElement | 'window'; // где скроллить, default 'window'
+    menuAlignment?: MenuAlignment; // выравнивание меню по оси X, default 'right'
 };
 
 export type OverlayState = {

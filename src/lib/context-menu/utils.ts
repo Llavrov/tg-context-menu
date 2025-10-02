@@ -584,11 +584,12 @@ export function calculateMenuDimensions(actionsCount: number, maxHeightVH: numbe
 }
 
 /**
- * Расчет позиции меню относительно элемента (как в Telegram)
+ * Расчет позиции меню относительно элемента с учетом выравнивания
  */
 export function calculateMenuPositionRelativeToElement(
     elementRect: DOMRect,
-    menuWidth: number = 250
+    menuWidth: number = 250,
+    alignment: 'left' | 'right' | 'center' = 'right'
 ): {
     left: number;
     bottom: number;
@@ -596,9 +597,24 @@ export function calculateMenuPositionRelativeToElement(
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
 
-    // Выравниваем меню по правому краю элемента
-    const elementRight = elementRect.right;
-    let menuLeft = elementRight - menuWidth;
+    let menuLeft: number;
+
+    // Вычисляем позицию в зависимости от выравнивания
+    switch (alignment) {
+        case 'left':
+            // Выравниваем меню по левому краю элемента
+            menuLeft = elementRect.left;
+            break;
+        case 'center':
+            // Центрируем меню относительно элемента
+            menuLeft = elementRect.left + (elementRect.width - menuWidth) / 2;
+            break;
+        case 'right':
+        default:
+            // Выравниваем меню по правому краю элемента (по умолчанию)
+            menuLeft = elementRect.right - menuWidth;
+            break;
+    }
 
     // Проверяем, чтобы меню не выходило за левый край экрана
     if (menuLeft < safeArea.left + 16) {
@@ -614,16 +630,78 @@ export function calculateMenuPositionRelativeToElement(
     const menuBottom = safeArea.bottom + 16;
 
     console.log('calculateMenuPositionRelativeToElement:', {
-        elementRight,
+        alignment,
+        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width },
         menuWidth,
         menuLeft,
-        menuBottom,
-        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width }
+        menuBottom
     });
 
     return {
         left: menuLeft,
         bottom: menuBottom
+    };
+}
+
+/**
+ * Расчет позиции меню под элементом с учетом выравнивания
+ */
+export function calculateMenuPositionUnderElement(
+    elementRect: DOMRect,
+    menuWidth: number = 250,
+    alignment: 'left' | 'right' | 'center' = 'right',
+    edgeMargin: number = 12
+): {
+    left: number;
+    top: number;
+} {
+    const viewport = getViewportRect();
+    const safeArea = getSafeArea();
+
+    let menuLeft: number;
+
+    // Вычисляем позицию в зависимости от выравнивания
+    switch (alignment) {
+        case 'left':
+            // Выравниваем меню по левому краю элемента
+            menuLeft = elementRect.left;
+            break;
+        case 'center':
+            // Центрируем меню относительно элемента
+            menuLeft = elementRect.left + (elementRect.width - menuWidth) / 2;
+            break;
+        case 'right':
+        default:
+            // Выравниваем меню по правому краю элемента (по умолчанию)
+            menuLeft = elementRect.right - menuWidth;
+            break;
+    }
+
+    // Проверяем, чтобы меню не выходило за левый край экрана
+    if (menuLeft < safeArea.left + 16) {
+        menuLeft = safeArea.left + 16;
+    }
+
+    // Проверяем, чтобы меню не выходило за правый край экрана
+    if (menuLeft + menuWidth > viewport.w - safeArea.right - 16) {
+        menuLeft = viewport.w - safeArea.right - 16 - menuWidth;
+    }
+
+    // Позиционируем меню под элементом
+    const menuTop = elementRect.bottom + edgeMargin;
+
+    console.log('calculateMenuPositionUnderElement:', {
+        alignment,
+        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width },
+        menuWidth,
+        menuLeft,
+        menuTop,
+        edgeMargin
+    });
+
+    return {
+        left: menuLeft,
+        top: menuTop
     };
 }
 

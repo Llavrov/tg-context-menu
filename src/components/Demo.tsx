@@ -185,7 +185,8 @@ function ChatMessage({ message }: { message: typeof sampleMessages[0] }) {
                 actions,
                 edgeMargin: 12,
                 maxMenuHeightVH: 60,
-                scrollContainer: 'window'
+                scrollContainer: 'window',
+                menuAlignment: message.isOwn ? 'right' : 'left' // Собственные сообщения - справа, чужие - слева
             })}
             className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'} mb-4 px-4`}
         >
