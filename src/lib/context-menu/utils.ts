@@ -331,7 +331,7 @@ export function createLongPressController(
                 applyScaleAnimation(target);
                 triggerHaptic(HapticType.MEDIUM);
 
-                // Через 350ms (время анимации scale 0.9) возвращаем к scale 1 и ОДНОВРЕМЕННО открываем меню
+                // Через 350ms (время анимации scale 0.95) возвращаем к scale 1 и ОДНОВРЕМЕННО открываем меню
                 setTimeout(() => {
                     if (isActive && currentElement) {
                         removeScaleAnimation(currentElement);
@@ -339,6 +339,21 @@ export function createLongPressController(
                         if (isActive) {
                             fire();
                         }
+
+                        // Через еще 350ms (время анимации scale 1) очищаем состояние
+                        setTimeout(() => {
+                            if (currentElement) {
+                                currentElement.style.transform = '';
+                                currentElement.style.transition = '';
+                                currentElement.style.transformOrigin = '';
+                            }
+                            // Сбрасываем состояние после завершения всех анимаций
+                            clearTimeoutId();
+                            startPos = null;
+                            isActive = false;
+                            wasLongPress = false;
+                            currentElement = null;
+                        }, 350);
                     }
                 }, 350);
             }
@@ -346,9 +361,10 @@ export function createLongPressController(
     };
 
     const onPointerUp = () => {
-        // Если это было долгое нажатие, просто сбрасываем состояние без анимаций
+        // Если это было долгое нажатие, НЕ сбрасываем анимацию - пусть она завершится
         if (wasLongPress) {
-            reset(true); // Пропускаем сброс scale анимации
+            // НЕ вызываем reset() - анимация должна завершиться сама
+            console.log('onPointerUp: Long press detected, letting animation complete');
         } else {
             // Убираем анимацию перед сбросом только для обычных нажатий
             if (currentElement) {
@@ -359,9 +375,10 @@ export function createLongPressController(
     };
 
     const onPointerCancel = () => {
-        // Если это было долгое нажатие, просто сбрасываем состояние без анимаций
+        // Если это было долгое нажатие, НЕ сбрасываем анимацию - пусть она завершится
         if (wasLongPress) {
-            reset(true); // Пропускаем сброс scale анимации
+            // НЕ вызываем reset() - анимация должна завершиться сама
+            console.log('onPointerCancel: Long press detected, letting animation complete');
         } else {
             // Убираем анимацию перед сбросом только для обычных нажатий
             if (currentElement) {
