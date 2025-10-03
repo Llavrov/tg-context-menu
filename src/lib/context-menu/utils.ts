@@ -598,6 +598,7 @@ export function restoreElementToOriginalPosition(
         element.style.transform = originalStyles.transform;
         element.style.transition = '';
         element.style.width = '';
+        element.style.height = '';
         element.style.opacity = '';
 
         // Возвращаем элемент на место placeholder

@@ -57,13 +57,19 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                                 initial={{
                                     left: `${state.menuPosition.left}px`,
                                     top: `${(state.menuPosition as MenuPosition).top}px`, // Всегда используем top
+                                    opacity: 1,
+                                    scale: 1
                                 }}
-                                animate={state.finalMenuPosition ? {
+                                animate={state.finalMenuPosition && state.animationPhase !== 'closing' ? {
                                     left: `${state.finalMenuPosition.left}px`,
                                     top: `${state.finalMenuPosition.top}px`, // Всегда используем top
+                                    opacity: 1,
+                                    scale: 1
                                 } : {
                                     left: `${state.menuPosition.left}px`,
                                     top: `${(state.menuPosition as MenuPosition).top}px`, // Всегда используем top
+                                    opacity: state.animationPhase === 'closing' ? 0 : 1, // Исчезаем при закрытии
+                                    scale: state.animationPhase === 'closing' ? 0.1 : 1 // Скейлим при закрытии
                                 }}
                                 transition={{
                                     duration: 0.4, // Синхронизируем с POSITION_ANIMATION_DURATION (400ms)

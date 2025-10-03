@@ -36,6 +36,7 @@ export type OverlayState = {
         transform: string;
     };
     config: OpenContextMenuConfig | null;
+    animationPhase?: 'opening' | 'closing'; // Фаза анимации для управления закрытием
 };
 
 export type ContextMenuState = OverlayState;
