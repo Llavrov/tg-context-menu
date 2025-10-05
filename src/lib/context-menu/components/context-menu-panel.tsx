@@ -9,7 +9,6 @@ import styles from './styles.module.scss';
 
 interface ContextMenuPanelProps {
     actions: ContextMenuAction[];
-    position: { left: number; top?: number; bottom?: number; width: number };
     maxHeightVH: number;
     onActionSelect: (action: ContextMenuAction) => void;
     onClose: () => void;
@@ -17,7 +16,6 @@ interface ContextMenuPanelProps {
 
 export function ContextMenuPanel({
     actions,
-    position,
     maxHeightVH,
     onActionSelect,
     onClose
@@ -25,7 +23,6 @@ export function ContextMenuPanel({
     const panelRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Фокус-тrap для доступности
     useEffect(() => {
         if (panelRef.current) {
             const cleanup = trapFocus(panelRef.current);
@@ -33,7 +30,6 @@ export function ContextMenuPanel({
         }
     }, []);
 
-    // Обработка свайпа вниз для закрытия
     useEffect(() => {
         const panel = panelRef.current;
         if (!panel) return;
@@ -58,7 +54,6 @@ export function ContextMenuPanel({
             isDragging = false;
 
             const deltaY = currentY - startY;
-            // Если свайп вниз больше 50px, закрываем меню
             if (deltaY > 50) {
                 onClose();
             }
@@ -83,7 +78,7 @@ export function ContextMenuPanel({
             exit={{ opacity: 0, scale: 0.1, y: -20 }}
             transition={{
                 duration: 0.4,
-                ease: [0.25, 0.46, 0.45, 0.94], // Более плавная кривая как в Telegram
+                ease: [0.25, 0.46, 0.45, 0.94],
                 scale: {
                     duration: 0.5,
                     ease: [0.25, 0.46, 0.45, 0.94]
@@ -95,15 +90,11 @@ export function ContextMenuPanel({
             }}
             className={styles.panel}
             style={{
-                width: position.width,
                 maxHeight: `${maxHeightVH}vh`,
-                transformOrigin: 'center top', // Меню растет из центра и верха
             }}
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
         >
-
-            {/* Список действий с внутренним скроллом */}
             <div
                 ref={scrollRef}
                 className={styles.actionsList}
@@ -111,10 +102,7 @@ export function ContextMenuPanel({
                 {actions.map((action) => (
                     <button
                         key={action.id}
-                        onClick={() => {
-                            // Убираем хаптик при выборе действия - он нужен только при долгом нажатии
-                            onActionSelect(action);
-                        }}
+                        onClick={() => onActionSelect(action)}
                         className={classNames(styles.actionButton, {
                             [styles.destructive]: action.destructive
                         })}
@@ -129,7 +117,6 @@ export function ContextMenuPanel({
                 ))}
             </div>
 
-            {/* Отступ снизу */}
             <div className={styles.bottomSpacing} />
         </motion.div>
     );

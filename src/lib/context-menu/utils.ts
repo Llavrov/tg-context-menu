@@ -19,7 +19,7 @@ export const CONTEXT_MENU_CONSTANTS = {
     LONG_PRESS_DELAY: 350,
     SCALE_ANIMATION_DURATION: 350,
     POSITION_ANIMATION_DURATION: 400,
-    RESTORE_ANIMATION_DURATION: 300,
+    RESTORE_ANIMATION_DURATION: 400,
     SCROLL_ANIMATION_DELAY: 300,
 
     // Z-index
@@ -674,19 +674,17 @@ export function calculateMenuDimensions(actionsCount: number, maxHeightVH: numbe
     itemHeight: number;
     padding: number;
 } {
-    const itemHeight = CONTEXT_MENU_CONSTANTS.MENU_ITEM_HEIGHT;
-    const padding = CONTEXT_MENU_CONSTANTS.MENU_PADDING;
     const maxHeight = (maxHeightVH * window.innerHeight) / 100;
 
     const totalHeight = Math.min(
-        actionsCount * itemHeight + padding,
+        actionsCount * CONTEXT_MENU_CONSTANTS.MENU_ITEM_HEIGHT + CONTEXT_MENU_CONSTANTS.MENU_PADDING,
         maxHeight
     );
 
     return {
         height: totalHeight,
-        itemHeight,
-        padding
+        itemHeight: CONTEXT_MENU_CONSTANTS.MENU_ITEM_HEIGHT,
+        padding: CONTEXT_MENU_CONSTANTS.MENU_PADDING
     };
 }
 

@@ -226,30 +226,29 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
     const close = useCallback(async (_reason: 'backdrop' | 'escape' | 'gesture' | 'action' = 'backdrop') => {
         const placeholder = placeholderRef.current || state.placeholderElement;
 
-        // Устанавливаем фазу закрытия
+        // Устанавливаем фазу закрытия и сразу возвращаем элемент
         setState(prev => ({
             ...prev,
             animationPhase: 'closing',
         }));
 
-        // Ждем анимации закрытия (scale + opacity), затем возвращаем элемент
-        setTimeout(() => {
-            if (state.originalElement && state.originalParent && state.originalStyles && placeholder && state.originalPosition) {
-                restoreElementToOriginalPosition(
-                    state.originalElement,
-                    state.originalParent,
-                    state.originalNextSibling,
-                    state.originalStyles,
-                    placeholder,
-                    state.originalPosition
-                );
-            }
+        // Сразу возвращаем элемент, чтобы он анимировался вместе с исчезновением меню
+        if (state.originalElement && state.originalParent && state.originalStyles && placeholder && state.originalPosition) {
+            restoreElementToOriginalPosition(
+                state.originalElement,
+                state.originalParent,
+                state.originalNextSibling,
+                state.originalStyles,
+                placeholder,
+                state.originalPosition
+            );
+        }
 
-            if (unlockScrollRef.current) {
-                unlockScrollRef.current();
-                unlockScrollRef.current = null;
-            }
-        }, CONTEXT_MENU_CONSTANTS.POSITION_ANIMATION_DURATION); // Ждем завершения анимации
+        // Разблокируем скролл сразу
+        if (unlockScrollRef.current) {
+            unlockScrollRef.current();
+            unlockScrollRef.current = null;
+        }
 
         // Очищаем состояние после всех анимаций
         setTimeout(() => {
@@ -273,7 +272,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 config: null,
                 animationPhase: undefined,
             });
-        }, CONTEXT_MENU_CONSTANTS.POSITION_ANIMATION_DURATION + CONTEXT_MENU_CONSTANTS.CLOSE_STATE_CLEAR_TIMEOUT);
+        }, CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_DURATION); // Ждём завершения анимации элемента
     }, [state.originalElement, state.originalParent, state.originalNextSibling, state.originalStyles, state.placeholderElement, state.originalPosition]);
 
     const longPress = useCallback((config: OpenContextMenuConfig) => {

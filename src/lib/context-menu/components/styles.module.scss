@@ -3,13 +3,12 @@
   width: 250px;
   z-index: 120;
   background: rgba(30, 30, 35, 0.98);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
+  // backdrop-filter: blur(30px);
+  // -webkit-backdrop-filter: blur(30px);
   border-radius: 14px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   border: 0.5px solid rgba(255, 255, 255, 0.08);
   padding-bottom: env(safe-area-inset-bottom, 8px);
-  transform-origin: top right;
+  transform-origin: top center !important;
 }
 
 .actionsList {

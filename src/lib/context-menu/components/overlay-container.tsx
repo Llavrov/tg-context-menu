@@ -37,11 +37,13 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                         {/* Backdrop */}
                         <motion.div
                             initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
+                            animate={{
+                                opacity: state.animationPhase === 'closing' ? 0 : 1
+                            }}
                             exit={{ opacity: 0 }}
                             transition={{
-                                duration: 0.3,
-                                delay: 0.1, // Задержка - сначала перемещается элемент
+                                duration: state.animationPhase === 'closing' ? 0.3 : 0.3,
+                                delay: state.animationPhase === 'closing' ? 0 : 0.1,
                                 ease: [0.16, 1, 0.3, 1] // easeOutExpo
                             }}
                             className={styles.backdrop}
@@ -82,11 +84,6 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                             >
                                 <ContextMenuPanel
                                     actions={state.config.actions}
-                                    position={{
-                                        left: 0,
-                                        top: 0,
-                                        width: 250
-                                    }}
                                     maxHeightVH={state.config.maxMenuHeightVH || 60}
                                     onActionSelect={onActionSelect}
                                     onClose={onClose}
