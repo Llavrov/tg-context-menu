@@ -23,11 +23,20 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                         className={styles.overlayContainer}
                     >
                         <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{
-                                opacity: state.animationPhase === 'closing' ? 0 : 1
+                            initial={{
+                                opacity: 0,
+                                backdropFilter: 'blur(0px) saturate(100%)'
                             }}
-                            exit={{ opacity: 0 }}
+                            animate={{
+                                opacity: state.animationPhase === 'closing' ? 0 : 1,
+                                backdropFilter: state.animationPhase === 'closing'
+                                    ? 'blur(0px) saturate(100%)'
+                                    : 'blur(60px) saturate(180%)'
+                            }}
+                            exit={{
+                                opacity: 0,
+                                backdropFilter: 'blur(0px) saturate(100%)'
+                            }}
                             transition={{
                                 duration: 0.3,
                                 delay: 0,
