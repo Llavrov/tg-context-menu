@@ -1,56 +1,33 @@
 import { ViewportRect, SafeArea, MenuPosition, LongPressOpts } from './types';
 
-/**
- * Константы для контекстного меню
- */
 export const CONTEXT_MENU_CONSTANTS = {
-    // Размеры меню
     MENU_WIDTH: 250,
     MENU_ITEM_HEIGHT: 52,
     MENU_PADDING: 32,
     MENU_MAX_HEIGHT_VH: 60,
-
-    // Отступы и границы
     SCREEN_MARGIN: 16,
     ELEMENT_MENU_MARGIN: 12,
     VIEWPORT_MARGIN: 32,
-
-    // Анимации
     LONG_PRESS_DELAY: 350,
     SCALE_ANIMATION_DURATION: 350,
     POSITION_ANIMATION_DURATION: 400,
     RESTORE_ANIMATION_DURATION: 400,
     SCROLL_ANIMATION_DELAY: 300,
-
-    // Z-index
     OVERLAY_Z_INDEX: 1000,
-
-    // Движение
     MOVE_TOLERANCE: 10,
-
-    // Масштабирование
     SCALE_DOWN_VALUE: 0.95,
     SCALE_UP_VALUE: 1,
-
-    // Fallback размеры (iPhone X)
     DEFAULT_VIEWPORT_WIDTH: 375,
     DEFAULT_VIEWPORT_HEIGHT: 812,
-
-    // Минимальная высота для меню
     MIN_MENU_HEIGHT: 300,
     MENU_HEIGHT_BUFFER: 50,
-
-    // Таймеры для анимаций
-    LONG_PRESS_TIMEOUT: 350, // Время до начала анимации scale
-    SCALE_ANIMATION_TIMEOUT: 350, // Время между scale 0.95 и scale 1
-    STYLE_CLEAR_TIMEOUT: 350, // Время до очистки стилей после анимации
-    RESTORE_ANIMATION_TIMEOUT: 300, // Время анимации возврата элемента
-    CLOSE_STATE_CLEAR_TIMEOUT: 350, // Время до очистки состояния при закрытии
+    LONG_PRESS_TIMEOUT: 350,
+    SCALE_ANIMATION_TIMEOUT: 350,
+    STYLE_CLEAR_TIMEOUT: 350,
+    RESTORE_ANIMATION_TIMEOUT: 300,
+    CLOSE_STATE_CLEAR_TIMEOUT: 350
 } as const;
 
-/**
- * Типы хаптической обратной связи
- */
 export enum HapticType {
     LIGHT = 'light',
     MEDIUM = 'medium',
@@ -61,9 +38,6 @@ export enum HapticType {
     SELECTION = 'selection'
 }
 
-/**
- * Паттерны вибрации для разных типов хаптика
- */
 const HAPTIC_PATTERNS = {
     [HapticType.LIGHT]: 10,
     [HapticType.MEDIUM]: 15,
@@ -74,17 +48,12 @@ const HAPTIC_PATTERNS = {
     [HapticType.SELECTION]: 5
 };
 
-/**
- * Хаптическая обратная связь
- */
 export function triggerHaptic(type: HapticType | number | number[] = HapticType.MEDIUM): void {
     if (typeof window === 'undefined') {
         return;
     }
 
-    // Сначала пробуем Telegram WebApp API
     try {
-        // Используем глобальный объект Telegram.WebApp
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (typeof (window as any).Telegram !== 'undefined' &&
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -93,8 +62,6 @@ export function triggerHaptic(type: HapticType | number | number[] = HapticType.
             (window as any).Telegram.WebApp.HapticFeedback) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const tg = (window as any).Telegram.WebApp;
-
-            // Используем Telegram WebApp хаптик
             switch (type) {
                 case HapticType.LIGHT:
                     tg.HapticFeedback.impactOccurred('light');
@@ -121,14 +88,11 @@ export function triggerHaptic(type: HapticType | number | number[] = HapticType.
                     tg.HapticFeedback.impactOccurred('medium');
                     break;
             }
-            console.log('Telegram WebApp haptic triggered:', type);
             return;
         }
     } catch (error) {
-        console.warn('Telegram WebApp haptic failed:', error);
     }
 
-    // Fallback на стандартный navigator.vibrate
     if (!navigator.vibrate) {
         return;
     }
@@ -136,30 +100,22 @@ export function triggerHaptic(type: HapticType | number | number[] = HapticType.
     let pattern: number | number[];
 
     if (typeof type === 'number' || Array.isArray(type)) {
-        // Прямая передача паттерна
         pattern = type;
     } else {
-        // Использование предустановленного типа
         pattern = HAPTIC_PATTERNS[type] || HAPTIC_PATTERNS[HapticType.MEDIUM];
     }
 
     try {
         navigator.vibrate(pattern);
-        console.log('Standard haptic triggered:', type);
     } catch (error) {
-        console.warn('Standard haptic feedback failed:', error);
     }
 }
 
-/**
- * Проверка поддержки хаптика
- */
 export function isHapticSupported(): boolean {
     if (typeof window === 'undefined') {
         return false;
     }
 
-    // Проверяем Telegram WebApp API
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (typeof (window as any).Telegram !== 'undefined' &&
@@ -172,14 +128,9 @@ export function isHapticSupported(): boolean {
     } catch {
         // Игнорируем ошибки
     }
-
-    // Fallback на стандартный API
     return 'vibrate' in navigator;
 }
 
-/**
- * Получение размеров viewport
- */
 export function getViewportRect(): ViewportRect {
     if (typeof window === 'undefined') {
         return {
@@ -194,9 +145,6 @@ export function getViewportRect(): ViewportRect {
     };
 }
 
-/**
- * Получение safe area insets
- */
 export function getSafeArea(): SafeArea {
     if (typeof document === 'undefined') {
         return { top: 0, bottom: 0, left: 0, right: 0 };
@@ -213,9 +161,6 @@ export function getSafeArea(): SafeArea {
 }
 
 
-/**
- * Позиционирование меню снизу экрана
- */
 export function positionMenu(viewportW: number, safeBottom: number = 0): MenuPosition {
     const menuWidth = Math.min(viewportW - CONTEXT_MENU_CONSTANTS.VIEWPORT_MARGIN, 320);
     const left = (viewportW - menuWidth) / 2;
@@ -227,9 +172,6 @@ export function positionMenu(viewportW: number, safeBottom: number = 0): MenuPos
     };
 }
 
-/**
- * Плавный скролл для обеспечения видимости элемента и меню
- */
 export async function ensureVisibleWithMenu(
     targetRect: DOMRect,
     menuHeight: number,
@@ -241,15 +183,11 @@ export async function ensureVisibleWithMenu(
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
 
-    // Вычисляем, где должно быть меню
     const menuTop = viewport.h - menuHeight - safeArea.bottom;
-
-    // Вычисляем, где должен быть элемент (с отступом)
     const elementBottom = targetRect.bottom;
     const requiredSpace = elementBottom - menuTop + opts.edgeMargin;
 
     if (requiredSpace > 0) {
-        // Нужно прокрутить вниз
         const scrollAmount = requiredSpace;
 
         if (opts.scrollContainer === 'window') {
@@ -264,14 +202,10 @@ export async function ensureVisibleWithMenu(
             });
         }
 
-        // Ждем завершения анимации скролла
         await new Promise(resolve => setTimeout(resolve, CONTEXT_MENU_CONSTANTS.SCROLL_ANIMATION_DELAY));
     }
 }
 
-/**
- * Создание контроллера долгого нажатия
- */
 export function createLongPressController(
     fire: (originalRect?: DOMRect) => void,
     opts: LongPressOpts = {}
@@ -336,7 +270,6 @@ export function createLongPressController(
         currentElement = target;
         originalRect = target.getBoundingClientRect();
 
-        // Предотвращаем выделение текста
         target.style.userSelect = 'none';
         target.style.webkitUserSelect = 'none';
 
@@ -346,13 +279,11 @@ export function createLongPressController(
                 applyScaleAnimation(target);
                 triggerHaptic(HapticType.MEDIUM);
 
-                // Через время анимации возвращаем к scale 1 и открываем меню
                 setTimeout(() => {
                     if (isActive && currentElement) {
                         removeScaleAnimation(currentElement);
                         fire(originalRect || undefined);
 
-                        // Очищаем стили через время анимации
                         setTimeout(() => {
                             if (currentElement) {
                                 currentElement.style.transform = '';
@@ -400,7 +331,6 @@ export function createLongPressController(
     };
 
     const onClick = () => {
-        // Обычный клик - ничего не делаем
     };
 
     const dispose = () => {
@@ -417,9 +347,6 @@ export function createLongPressController(
     };
 }
 
-/**
- * Фокус-тrap для доступности
- */
 export function trapFocus(container: HTMLElement): () => void {
     const focusableElements = container.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -452,9 +379,6 @@ export function trapFocus(container: HTMLElement): () => void {
     };
 }
 
-/**
- * Обработка глобальных клавиш
- */
 export function createGlobalKeyHandler(onEscape: () => void): () => void {
     const handleKeydown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') {
@@ -469,9 +393,6 @@ export function createGlobalKeyHandler(onEscape: () => void): () => void {
     };
 }
 
-/**
- * Сохранение оригинальных стилей элемента
- */
 export function saveElementStyles(element: HTMLElement) {
     return {
         position: element.style.position || 'static',
@@ -482,24 +403,16 @@ export function saveElementStyles(element: HTMLElement) {
     };
 }
 
-/**
- * Создание placeholder элемента
- */
 export function createPlaceholder(element: HTMLElement, originalRect: DOMRect): HTMLElement {
     const placeholder = document.createElement('div');
     const computedStyle = getComputedStyle(element);
 
-    // Используем originalRect для размеров (ДО масштабирования)
     placeholder.style.width = `${originalRect.width}px`;
     placeholder.style.height = `${originalRect.height}px`;
-
-    // Копируем margin для сохранения позиционирования
     placeholder.style.marginTop = computedStyle.marginTop;
     placeholder.style.marginBottom = computedStyle.marginBottom;
     placeholder.style.marginLeft = computedStyle.marginLeft;
     placeholder.style.marginRight = computedStyle.marginRight;
-
-    // Копируем border
     placeholder.style.borderTop = computedStyle.borderTop;
     placeholder.style.borderBottom = computedStyle.borderBottom;
     placeholder.style.borderLeft = computedStyle.borderLeft;
@@ -511,41 +424,28 @@ export function createPlaceholder(element: HTMLElement, originalRect: DOMRect): 
     return placeholder;
 }
 
-/**
- * Перемещение элемента на overlay слой с placeholder
- */
 export function moveElementToOverlay(
     element: HTMLElement,
     overlayContainer: HTMLElement,
     rect: DOMRect,
     finalPosition?: { top: number; left: number }
 ) {
-    // Сохраняем оригинальные данные
     const originalParent = element.parentElement;
     const originalNextSibling = element.nextSibling;
     const originalStyles = saveElementStyles(element);
-
-    // Создаем placeholder
     const placeholder = createPlaceholder(element, rect);
-
-    // Заменяем элемент на placeholder
     if (originalNextSibling) {
         originalParent!.insertBefore(placeholder, originalNextSibling);
     } else {
         originalParent!.appendChild(placeholder);
     }
 
-    // Перемещаем элемент в overlay
     overlayContainer.appendChild(element);
-
-    // Устанавливаем стили для overlay
     element.style.position = 'absolute';
     element.style.top = `${rect.top}px`;
     element.style.left = `${rect.left}px`;
     element.style.width = `${rect.width}px`;
     element.style.zIndex = CONTEXT_MENU_CONSTANTS.OVERLAY_Z_INDEX.toString();
-
-    // Добавляем transition для позиции
     const currentTransition = element.style.transition;
     const positionTransition = `top ${CONTEXT_MENU_CONSTANTS.POSITION_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), left ${CONTEXT_MENU_CONSTANTS.POSITION_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
 
@@ -555,7 +455,6 @@ export function moveElementToOverlay(
         element.style.setProperty('transition', positionTransition, 'important');
     }
 
-    // Анимируем к финальной позиции если нужно
     if (finalPosition) {
         requestAnimationFrame(() => {
             element.style.top = `${finalPosition.top}px`;
@@ -571,9 +470,6 @@ export function moveElementToOverlay(
     };
 }
 
-/**
- * Возвращение элемента на место с анимацией
- */
 export function restoreElementToOriginalPosition(
     element: HTMLElement,
     originalParent: HTMLElement,
@@ -582,15 +478,11 @@ export function restoreElementToOriginalPosition(
     placeholder: HTMLElement,
     originalRect: DOMRect
 ) {
-    // Анимируем возврат к оригинальной позиции
     element.style.transition = `top ${CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1), left ${CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 0.2, 1)`;
     element.style.top = `${originalRect.top}px`;
     element.style.left = `${originalRect.left}px`;
     element.style.width = `${originalRect.width}px`;
-
-    // Ждем завершения анимации, затем возвращаем элемент
     setTimeout(() => {
-        // Возвращаем оригинальные стили
         element.style.position = originalStyles.position;
         element.style.top = originalStyles.top;
         element.style.left = originalStyles.left;
@@ -601,11 +493,9 @@ export function restoreElementToOriginalPosition(
         element.style.height = '';
         element.style.opacity = '';
 
-        // Возвращаем элемент на место placeholder
         if (placeholder.parentElement) {
             placeholder.parentElement.replaceChild(element, placeholder);
         } else {
-            // Fallback если placeholder уже удален
             if (originalNextSibling && originalNextSibling.parentElement) {
                 originalParent.insertBefore(element, originalNextSibling);
             } else {
@@ -615,39 +505,28 @@ export function restoreElementToOriginalPosition(
     }, CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_TIMEOUT);
 }
 
-/**
- * Блокировка скролла
- */
 export function lockScroll(): () => void {
     const originalOverflow = document.body.style.overflow;
     const originalPosition = document.body.style.position;
     const originalTop = document.body.style.top;
     const originalWidth = document.body.style.width;
 
-    // Получаем текущую позицию скролла
     const scrollY = window.scrollY;
-
-    // Блокируем скролл
     document.body.style.overflow = 'hidden';
     document.body.style.position = 'fixed';
     document.body.style.top = `-${scrollY}px`;
     document.body.style.width = '100%';
 
-    // Возвращаем функцию для разблокировки
     return () => {
         document.body.style.overflow = originalOverflow;
         document.body.style.position = originalPosition;
         document.body.style.top = originalTop;
         document.body.style.width = originalWidth;
 
-        // Восстанавливаем позицию скролла
         window.scrollTo(0, scrollY);
     };
 }
 
-/**
- * Получение всех скроллируемых контейнеров
- */
 export function getScrollableContainers(element: HTMLElement): HTMLElement[] {
     const containers: HTMLElement[] = [];
     let current = element.parentElement;
@@ -666,9 +545,6 @@ export function getScrollableContainers(element: HTMLElement): HTMLElement[] {
     return containers;
 }
 
-/**
- * Расчет размеров контекстного меню
- */
 export function calculateMenuDimensions(actionsCount: number, maxHeightVH: number = CONTEXT_MENU_CONSTANTS.MENU_MAX_HEIGHT_VH): {
     height: number;
     itemHeight: number;
@@ -688,9 +564,6 @@ export function calculateMenuDimensions(actionsCount: number, maxHeightVH: numbe
     };
 }
 
-/**
- * Расчет позиции меню с учетом выравнивания
- */
 export function calculateMenuPosition(
     elementRect: DOMRect,
     menuWidth: number = CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
@@ -706,7 +579,6 @@ export function calculateMenuPosition(
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
 
-    // Вычисляем позицию по X в зависимости от выравнивания
     let menuLeft: number;
     switch (alignment) {
         case 'left':
@@ -717,86 +589,33 @@ export function calculateMenuPosition(
             break;
         case 'right':
         default:
-            // Для правого выравнивания: правый край меню = правый край элемента
             menuLeft = elementRect.right - menuWidth;
             break;
     }
 
-    console.log('Alignment calculation:', {
-        alignment,
-        elementRect: { left: elementRect.left, right: elementRect.right, width: elementRect.width },
-        menuWidth,
-        calculatedLeft: menuLeft,
-        expectedRight: elementRect.right,
-        actualRight: menuLeft + menuWidth
-    });
 
-    // Проверяем границы экрана
     const minLeft = safeArea.left + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN;
     const maxLeft = viewport.w - safeArea.right - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuWidth;
     const originalMenuLeft = menuLeft;
     menuLeft = Math.max(minLeft, Math.min(menuLeft, maxLeft));
 
-    console.log('Menu alignment debug:', {
-        alignment,
-        elementRect: {
-            left: elementRect.left,
-            right: elementRect.right,
-            width: elementRect.width,
-            top: elementRect.top,
-            bottom: elementRect.bottom,
-            height: elementRect.height
-        },
-        menuWidth,
-        originalMenuLeft,
-        finalMenuLeft: menuLeft,
-        adjusted: originalMenuLeft !== menuLeft,
-        elementRight: elementRect.right,
-        menuRight: menuLeft + menuWidth,
-        alignmentCheck: {
-            elementRight: elementRect.right,
-            menuRight: menuLeft + menuWidth,
-            isAligned: Math.abs(elementRect.right - (menuLeft + menuWidth)) < 1,
-            difference: elementRect.right - (menuLeft + menuWidth)
-        },
-        calculation: {
-            elementRight: elementRect.right,
-            menuWidth: menuWidth,
-            calculatedLeft: elementRect.right - menuWidth,
-            finalLeft: menuLeft
-        }
-    });
 
-    // Вычисляем позицию по Y
     if (position === 'under') {
-        // Проверяем, помещается ли меню под элементом
         const menuTop = elementRect.bottom + edgeMargin;
         const availableHeight = viewport.h - menuTop - safeArea.bottom;
         const requiredHeight = menuHeight || CONTEXT_MENU_CONSTANTS.MIN_MENU_HEIGHT;
 
-        console.log('calculateMenuPosition UNDER check:', {
-            menuTop,
-            availableHeight,
-            requiredHeight,
-            fits: availableHeight >= requiredHeight
-        });
-
-        // Если меню не помещается под элементом, позиционируем снизу экрана
         if (availableHeight < requiredHeight) {
-            console.log('Menu does not fit under element, positioning at bottom');
             return {
                 left: menuLeft,
                 bottom: safeArea.bottom + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN
             };
         }
-
-        console.log('Menu fits under element, positioning under');
         return {
             left: menuLeft,
             top: menuTop
         };
     } else {
-        // Для позиции 'bottom' также используем правильное позиционирование
         const bottomPosition = Math.max(
             safeArea.bottom + CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN,
             viewport.h - (menuHeight || CONTEXT_MENU_CONSTANTS.MIN_MENU_HEIGHT) - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN
@@ -808,9 +627,6 @@ export function calculateMenuPosition(
     }
 }
 
-/**
- * Проверяет, нужно ли перемещать элемент или можно оставить на месте
- */
 export function shouldMoveElement(
     elementRect: DOMRect,
     menuHeight: number,
@@ -819,34 +635,18 @@ export function shouldMoveElement(
     const viewport = getViewportRect();
     const safeArea = getSafeArea();
 
-    // Проверяем, помещается ли меню под элементом с запасом
     const menuTop = elementRect.bottom + edgeMargin;
     const availableHeight = viewport.h - menuTop - safeArea.bottom;
     const menuFitsBelow = availableHeight >= menuHeight + CONTEXT_MENU_CONSTANTS.MENU_HEIGHT_BUFFER;
 
-    // Проверяем, не слишком ли большой элемент
     const totalHeight = elementRect.height + menuHeight + edgeMargin;
     const viewportHeight = viewport.h - safeArea.top - safeArea.bottom - CONTEXT_MENU_CONSTANTS.VIEWPORT_MARGIN;
     const isTooLarge = totalHeight > viewportHeight;
 
-    // Проверяем, не выходит ли элемент за верх экрана
     const elementFitsInViewport = elementRect.top >= safeArea.top;
 
     const result = isTooLarge || !elementFitsInViewport || !menuFitsBelow;
 
-    console.log('shouldMoveElement debug:', {
-        elementRect: { bottom: elementRect.bottom, height: elementRect.height, top: elementRect.top },
-        menuHeight,
-        edgeMargin,
-        menuTop,
-        availableHeight,
-        menuFitsBelow,
-        totalHeight,
-        viewportHeight,
-        isTooLarge,
-        elementFitsInViewport,
-        result
-    });
 
     return result;
 }

@@ -3,22 +3,20 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import classNames from 'classnames';
-import { ContextMenuAction } from '../types';
-import { trapFocus } from '../utils';
+import { ContextMenuAction } from '../../types';
+import { trapFocus } from '../../utils';
 import styles from './styles.module.scss';
 
 interface ContextMenuPanelProps {
     actions: ContextMenuAction[];
     maxHeightVH: number;
     onActionSelect: (action: ContextMenuAction) => void;
-    onClose: () => void;
 }
 
 export function ContextMenuPanel({
     actions,
     maxHeightVH,
     onActionSelect,
-    onClose
 }: ContextMenuPanelProps) {
     const panelRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -29,46 +27,6 @@ export function ContextMenuPanel({
             return cleanup;
         }
     }, []);
-
-    useEffect(() => {
-        const panel = panelRef.current;
-        if (!panel) return;
-
-        let startY = 0;
-        let currentY = 0;
-        let isDragging = false;
-
-        const handleTouchStart = (e: TouchEvent) => {
-            startY = e.touches[0].clientY;
-            currentY = startY;
-            isDragging = true;
-        };
-
-        const handleTouchMove = (e: TouchEvent) => {
-            if (!isDragging) return;
-            currentY = e.touches[0].clientY;
-        };
-
-        const handleTouchEnd = () => {
-            if (!isDragging) return;
-            isDragging = false;
-
-            const deltaY = currentY - startY;
-            if (deltaY > 50) {
-                onClose();
-            }
-        };
-
-        panel.addEventListener('touchstart', handleTouchStart, { passive: true });
-        panel.addEventListener('touchmove', handleTouchMove, { passive: true });
-        panel.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-        return () => {
-            panel.removeEventListener('touchstart', handleTouchStart);
-            panel.removeEventListener('touchmove', handleTouchMove);
-            panel.removeEventListener('touchend', handleTouchEnd);
-        };
-    }, [onClose]);
 
     return (
         <motion.div

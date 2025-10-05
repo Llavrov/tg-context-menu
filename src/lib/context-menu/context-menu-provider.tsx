@@ -66,16 +66,13 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             const element = state.originalElement;
             const rect = state.originalPosition!;
 
-            // Вычисляем финальную позицию элемента, если нужно перемещать
             let finalPosition = null;
             if (state.finalMenuPosition) {
-                // Если есть финальная позиция меню, значит элемент должен перемещаться
                 const menuDimensions = calculateMenuDimensions(
                     state.config.actions.length,
                     state.config.maxMenuHeightVH || CONTEXT_MENU_CONSTANTS.MENU_MAX_HEIGHT_VH
                 );
 
-                // Вычисляем позицию элемента так, чтобы меню поместилось снизу
                 const viewport = getViewportRect();
                 const safeArea = getSafeArea();
                 const elementFinalTop = viewport.h - safeArea.bottom - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuDimensions.height - CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN - rect.height;
@@ -157,82 +154,62 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             transform: element.style.transform || 'none',
         };
 
-        // ВСЕГДА начинаем с позиции под элементом (принудительно, даже если не помещается)
         const initialMenuPos = {
             left: calculateMenuPosition(
                 rect,
                 CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
                 config.menuAlignment || 'right',
-                'under', // Принудительно под элементом
+                'under',
                 config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN,
-                0 // Игнорируем высоту меню для начальной позиции
+                0
             ).left,
-            top: rect.bottom + (config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN), // Принудительно под элементом
+            top: rect.bottom + (config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN),
             width: CONTEXT_MENU_CONSTANTS.MENU_WIDTH
         };
 
-        // Если нужно перемещать, вычисляем финальную позицию
         let finalMenuPos = null;
         if (shouldMove) {
-            // Вычисляем позицию снизу экрана, но используем top вместо bottom
             const viewport = getViewportRect();
             const safeArea = getSafeArea();
             const finalTop = viewport.h - safeArea.bottom - CONTEXT_MENU_CONSTANTS.SCREEN_MARGIN - menuDimensions.height;
 
             finalMenuPos = {
                 left: calculateMenuPosition(
-                    rect, // Используем оригинальную позицию элемента для выравнивания по X
+                    rect,
                     CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
                     config.menuAlignment || 'right',
-                    'bottom', // Для вычисления left
+                    'bottom',
                     config.edgeMargin || CONTEXT_MENU_CONSTANTS.ELEMENT_MENU_MARGIN,
                     menuDimensions.height
                 ).left,
-                top: finalTop, // Используем top вместо bottom для анимации
+                top: finalTop,
                 width: CONTEXT_MENU_CONSTANTS.MENU_WIDTH
             };
         }
 
-        console.log('Menu positions:', {
-            initial: initialMenuPos,
-            final: finalMenuPos,
-            shouldMove,
-            elementRect: { left: rect.left, right: rect.right, width: rect.width },
-            alignment: config.menuAlignment || 'right',
-            menuWidth: CONTEXT_MENU_CONSTANTS.MENU_WIDTH,
-            alignmentCheck: {
-                elementRight: rect.right,
-                initialMenuRight: initialMenuPos.left + initialMenuPos.width,
-                finalMenuRight: finalMenuPos ? finalMenuPos.left + finalMenuPos.width : null,
-                isInitialAligned: Math.abs(rect.right - (initialMenuPos.left + initialMenuPos.width)) < 1,
-                isFinalAligned: finalMenuPos ? Math.abs(rect.right - (finalMenuPos.left + finalMenuPos.width)) < 1 : null
-            }
-        });
 
         setState({
             isOpen: true,
             originalElement: element,
             originalPosition: rect,
-            menuPosition: initialMenuPos, // Начинаем с позиции под элементом
+            menuPosition: initialMenuPos,
             originalParent,
             originalNextSibling,
             originalStyles,
             placeholderElement: null,
             config,
-            finalMenuPosition: finalMenuPos, // Финальная позиция (если нужно)
+            finalMenuPosition: finalMenuPos,
         });
     }, []);
 
     const close = useCallback(async (_reason: 'backdrop' | 'escape' | 'gesture' | 'action' = 'backdrop') => {
         const placeholder = placeholderRef.current || state.placeholderElement;
 
-        // Устанавливаем фазу закрытия и сразу возвращаем элемент
         setState(prev => ({
             ...prev,
             animationPhase: 'closing',
         }));
 
-        // Сразу возвращаем элемент, чтобы он анимировался вместе с исчезновением меню
         if (state.originalElement && state.originalParent && state.originalStyles && placeholder && state.originalPosition) {
             restoreElementToOriginalPosition(
                 state.originalElement,
@@ -244,13 +221,10 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
             );
         }
 
-        // Разблокируем скролл сразу
         if (unlockScrollRef.current) {
             unlockScrollRef.current();
             unlockScrollRef.current = null;
         }
-
-        // Очищаем состояние после всех анимаций
         setTimeout(() => {
             placeholderRef.current = null;
             setState({
@@ -272,7 +246,7 @@ export function ContextMenuProvider({ children }: ContextMenuProviderProps) {
                 config: null,
                 animationPhase: undefined,
             });
-        }, CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_DURATION); // Ждём завершения анимации элемента
+        }, CONTEXT_MENU_CONSTANTS.RESTORE_ANIMATION_DURATION);
     }, [state.originalElement, state.originalParent, state.originalNextSibling, state.originalStyles, state.placeholderElement, state.originalPosition]);
 
     const longPress = useCallback((config: OpenContextMenuConfig) => {

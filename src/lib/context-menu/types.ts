@@ -65,7 +65,6 @@ export type SafeArea = {
     right: number;
 };
 
-
 export type MenuPosition = {
     left: number | string;
     top?: number;
