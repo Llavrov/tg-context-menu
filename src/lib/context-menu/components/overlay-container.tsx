@@ -43,7 +43,7 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                             exit={{ opacity: 0 }}
                             transition={{
                                 duration: state.animationPhase === 'closing' ? 0.3 : 0.3,
-                                delay: state.animationPhase === 'closing' ? 0 : 0.1,
+                                delay: 0, // Убираем задержку для синхронизации
                                 ease: [0.16, 1, 0.3, 1] // easeOutExpo
                             }}
                             className={styles.backdrop}
@@ -66,12 +66,14 @@ export const OverlayContainer = forwardRef<HTMLDivElement, OverlayContainerProps
                                     left: `${state.finalMenuPosition.left}px`,
                                     top: `${state.finalMenuPosition.top}px`, // Всегда используем top
                                     opacity: 1,
-                                    scale: 1
+                                    scale: 1,
+                                    x: 0
                                 } : {
                                     left: `${state.menuPosition.left}px`,
                                     top: `${(state.menuPosition as MenuPosition).top}px`, // Всегда используем top
                                     opacity: state.animationPhase === 'closing' ? 0 : 1, // Исчезаем при закрытии
-                                    scale: state.animationPhase === 'closing' ? 0.1 : 1 // Скейлим при закрытии
+                                    scale: state.animationPhase === 'closing' ? 0.1 : 1, // Скейлим при закрытии
+                                    x: state.animationPhase === 'closing' ? 112.5 : 0 // Компенсация смещения влево
                                 }}
                                 transition={{
                                     duration: 0.4, // Синхронизируем с POSITION_ANIMATION_DURATION (400ms)
